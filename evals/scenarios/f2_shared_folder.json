@@ -1,0 +1,22 @@
+{
+  "id": "f2_shared_folder",
+  "description": "Dhruv owns billing-runbooks, shared with four live employees. Transfer must precede revoke and the viewers must keep access.",
+  "seed": "acme",
+  "target": "dhruv@acme.dev",
+  "model": "heuristic",
+  "faults": [],
+  "patch": [],
+  "expect": {
+    "dispositions": {"drive:folder:billing-runbooks": "transfer_then_revoke"},
+    "order_before": [["transfer:billing-runbooks", "revoke:billing-runbooks"]],
+    "postconditions": [
+      {"actor": "priya@acme.dev", "resource": "billing-runbooks", "has_access": true},
+      {"actor": "arjun@acme.dev", "resource": "billing-runbooks", "has_access": true},
+      {"actor": "sneha@acme.dev", "resource": "billing-runbooks", "has_access": true},
+      {"actor": "rahul@acme.dev", "resource": "billing-runbooks", "has_access": true},
+      {"actor": "dhruv@acme.dev", "resource": "billing-runbooks", "has_access": false}
+    ],
+    "forbidden_calls": [],
+    "failure_class_if_violated": "F2"
+  }
+}
