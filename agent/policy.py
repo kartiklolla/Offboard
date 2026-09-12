@@ -42,6 +42,7 @@ MIN_SIGNALS = 2
 CREDENTIAL_FRESH_HOURS = 24.0
 
 PHASE_RANK = {"transfer": 0, "revoke_reversible": 1, "revoke_irreversible": 2, "deactivate": 3, "log": 4, "notify": 5}
+ACCOUNT_LEVEL_OPS = ("deactivate_user", "remove_org_member")
 
 
 @dataclass
@@ -142,6 +143,8 @@ class Policy:
                 return Disposition(ESCALATE, f"used {age}h ago; something still depends on it", "policy", "R2")
             return Disposition(REVOKE, "personal credential, not referenced and not recently used", "policy", "R7")
         if kind in ("folder", "file"):
+            if not self.manager:
+                return Disposition(ESCALATE, "owned by the employee but no manager on record to receive it", "policy", "R4")
             if item.shared_with:
                 return Disposition(TRANSFER_THEN_REVOKE, f"owned by the employee and shared with {len(item.shared_with)} colleagues; revoking directly would orphan it", "policy", "R3", transfer_to=self.manager)
             return Disposition(TRANSFER_THEN_REVOKE, "owned solely by the employee; ownership goes to the manager so nothing is lost", "policy", "R4", transfer_to=self.manager)
@@ -224,7 +227,7 @@ class Policy:
             return PHASE_RANK["log"]
         if action.verb == "notify":
             return PHASE_RANK["notify"]
-        if action.op == "deactivate_user":
+        if action.op in ACCOUNT_LEVEL_OPS:
             return PHASE_RANK["deactivate"]
         if action.risk.value == "reversible":
             return PHASE_RANK["revoke_reversible"]

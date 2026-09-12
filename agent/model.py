@@ -60,7 +60,7 @@ class HeuristicModel(_Stub):
         for c in candidates:
             score = 0
             if c.get("email") and _norm(c["email"]) == _norm(hr_record.get("email")):
-                score += 1
+                score += 2 if app == "drive" else 1
             if _norm(c.get("name")) == _norm(hr_record.get("name")):
                 score += 1
             if hr_record.get("github_login") and _norm(c.get("handle")) == _norm(hr_record["github_login"]):
@@ -93,15 +93,16 @@ class HeuristicModel(_Stub):
     def order(self, actions: list[dict]) -> list[str]:
         self._note(prompts.order_prompt(actions))
         rank = {"transfer": 0, "revoke": 1, "log": 2, "notify": 3}
-        return [a["name"] for a in sorted(actions, key=lambda a: (rank.get(a["verb"], 9), a["risk"] == "irreversible", a["op"] == "deactivate_user", a["name"]))]
+        account_level = ("deactivate_user", "remove_org_member")
+        return [a["name"] for a in sorted(actions, key=lambda a: (rank.get(a["verb"], 9), a["risk"] == "irreversible", a["op"] in account_level, a["name"]))]
 
     def draft_summary(self, context: dict) -> list[str]:
         self._note(prompts.summary_prompt(context))
+        results = context.get("gate_results", [])
+        writes = [g for g in results if g.get("verb") in ("transfer", "revoke")]
         sentences: list[str] = []
-        for g in context.get("gate_results", []):
-            if g["status"] == "applied":
-                sentences.append(f"{g['name']} was applied on {g['app']}. [s{g['step_id']}]")
-            elif g["status"] in ("failed_postcondition", "failed_apply"):
+        for g in writes:
+            if g["status"] in ("failed_postcondition", "failed_apply"):
                 sentences.append(f"{g['name']} on {g['app']} did not complete ({g['status']}) and needs a human. [s{g['step_id']}]")
             elif g["status"] == "needs_approval":
                 sentences.append(f"{g['name']} on {g['app']} is waiting for approval. [s{g['step_id']}]")
@@ -110,6 +111,18 @@ class HeuristicModel(_Stub):
         for i in context.get("identity", []):
             if i["status"] == "needs_human":
                 sentences.append(f"No {i['app']} account was touched because identity could not be confirmed. [s{i['step_id']}]")
+        for g in writes:
+            if g["status"] == "applied" and g.get("verb") == "transfer" and g.get("shared"):
+                sentences.append(f"{g['name'].split(':', 1)[1]} was transferred to the manager with its {g['shared']} existing sharees kept. [s{g['step_id']}]")
+        applied = [g for g in writes if g["status"] == "applied"]
+        skipped = context.get("skipped", [])
+        if applied:
+            anchor = applied[-1]
+            sentences.append(f"{len(applied)} of {len(writes) + len(skipped)} planned writes passed the gate's read-back, the last being {anchor['name']}. [s{anchor['step_id']}]")
+        if skipped:
+            anchor = next((g for g in writes if g["status"] in ("failed_postcondition", "failed_apply")), None)
+            if anchor:
+                sentences.append(f"{len(skipped)} planned writes were not attempted after that failure. [s{anchor['step_id']}]")
         if not sentences:
             sentences.append(f"No changes were made in this run. [s{context['run_step_id']}]")
         return sentences[:8]
