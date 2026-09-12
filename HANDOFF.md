@@ -1,5 +1,7 @@
 # Handoff: trace, adapters/twins, scenario schema
 
+See CONTRACT.md for the Track A / Track B split and the trace event contract. Each track appends its own section at the bottom of this file at every checkpoint.
+
 State as of 12 Sep 2026. Built and smoke-tested: `core/`, `adapters/`, `twins/`, `evals/schema.py`, one example scenario. Not built: `core/gate.py`, `agent/`, `evals/taxonomy.py`, `evals/runner.py`, the other scenarios, `report/`, `cli.py`, `tests/`. Drafts of gate, taxonomy, prompts and a model layer exist outside the repo if wanted; nothing downstream depends on them.
 
 ## Decisions already baked into the code
@@ -61,3 +63,12 @@ Thin, untested against real APIs. GitHub and Slack use `urllib` only; Drive and 
 - `Step.record()` rejects unknown field names; use the existing fields (`note`, `result`, `error`, `failure_class`...).
 - Python 3.14 on this machine; nothing beyond stdlib is required for the twin path.
 - `make test` finds no tests yet.
+
+
+## Track A status
+
+(not started)
+
+## Track B status
+
+(not started)
