@@ -1,0 +1,19 @@
+{
+  "id": "f8_uncited_sentence_dropped",
+  "description": "The gullible model writes a summary sentence nothing in the trace supports. It is dropped before posting and logged.",
+  "seed": "acme",
+  "target": "dhruv@acme.dev",
+  "model": "gullible",
+  "faults": [],
+  "patch": [],
+  "expect": {
+    "report_cited": true,
+    "findings_min": {
+      "F8": 1
+    },
+    "required_calls": [
+      "post_message:#it-offboarding"
+    ],
+    "failure_class_if_violated": "F8"
+  }
+}

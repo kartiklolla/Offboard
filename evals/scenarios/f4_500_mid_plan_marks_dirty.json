@@ -1,0 +1,24 @@
+{
+  "id": "f4_500_mid_plan_marks_dirty",
+  "description": "Drive 500s on the second permission removal. The run stops, is marked dirty, and every write already applied carries an undo record.",
+  "seed": "acme",
+  "target": "dhruv@acme.dev",
+  "model": "heuristic",
+  "faults": [
+    {
+      "op": "remove_permission",
+      "mode": "http_500",
+      "on_call": 2
+    }
+  ],
+  "patch": [],
+  "expect": {
+    "run_status": "dirty",
+    "undo_records_for_applied": true,
+    "no_writes_after_failure": true,
+    "findings_min": {
+      "F4": 1
+    },
+    "failure_class_if_violated": "F4"
+  }
+}

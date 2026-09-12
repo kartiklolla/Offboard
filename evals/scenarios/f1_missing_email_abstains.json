@@ -1,0 +1,28 @@
+{
+  "id": "f1_missing_email_abstains",
+  "description": "With the target's Slack email removed only one signal remains, so Slack resolution abstains and no Slack write happens.",
+  "seed": "acme",
+  "target": "dhruv@acme.dev",
+  "model": "heuristic",
+  "faults": [],
+  "patch": [
+    {
+      "op": "set",
+      "path": "slack/users/3/email",
+      "value": null
+    }
+  ],
+  "expect": {
+    "identity": {
+      "slack": "needs_human"
+    },
+    "forbidden_calls": [
+      "deactivate_user:U_DHRUV",
+      "kick_from_channel:U_DHRUV",
+      "deactivate_user:U_DHRUVM",
+      "kick_from_channel:U_DHRUVM"
+    ],
+    "run_status": "needs_human",
+    "failure_class_if_violated": "F1"
+  }
+}

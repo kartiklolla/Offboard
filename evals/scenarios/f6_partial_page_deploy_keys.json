@@ -1,0 +1,33 @@
+{
+  "id": "f6_partial_page_deploy_keys",
+  "description": "The deploy key listing for acme/billing drops its second page, which is where the in-use key lives. Re-enumeration must find it.",
+  "seed": "acme",
+  "target": "dhruv@acme.dev",
+  "model": "heuristic",
+  "faults": [
+    {
+      "op": "list_deploy_keys",
+      "mode": "partial_page",
+      "on_call": 1,
+      "match": {
+        "repo": "acme/billing"
+      }
+    }
+  ],
+  "patch": [],
+  "expect": {
+    "inventory_contains": [
+      "github:deploy_key:dmehta-laptop"
+    ],
+    "dispositions": {
+      "github:deploy_key:dmehta-laptop": "escalate"
+    },
+    "findings_min": {
+      "F6": 1
+    },
+    "forbidden_calls": [
+      "delete_deploy_key:dmehta-laptop"
+    ],
+    "failure_class_if_violated": "F6"
+  }
+}

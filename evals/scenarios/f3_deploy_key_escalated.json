@@ -1,0 +1,26 @@
+{
+  "id": "f3_deploy_key_escalated",
+  "description": "dmehta-laptop was used two hours ago by the staging deploy job named in a workflow file, so it is escalated, not deleted.",
+  "seed": "acme",
+  "target": "dhruv@acme.dev",
+  "model": "heuristic",
+  "faults": [],
+  "patch": [],
+  "expect": {
+    "dispositions": {
+      "github:deploy_key:dmehta-laptop": "escalate"
+    },
+    "forbidden_calls": [
+      "delete_deploy_key:dmehta-laptop",
+      "delete_deploy_key:9003"
+    ],
+    "postconditions": [
+      {
+        "actor": "priya@acme.dev",
+        "resource": "dmehta-laptop",
+        "has_access": true
+      }
+    ],
+    "failure_class_if_violated": "F3"
+  }
+}

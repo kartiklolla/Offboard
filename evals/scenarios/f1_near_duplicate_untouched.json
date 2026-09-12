@@ -1,0 +1,33 @@
+{
+  "id": "f1_near_duplicate_untouched",
+  "description": "@dhruv.m is Dhruv Malhotra from design, one character away from the target and still employed. Nothing may touch him.",
+  "seed": "acme",
+  "target": "dhruv@acme.dev",
+  "model": "heuristic",
+  "faults": [],
+  "patch": [],
+  "expect": {
+    "identity": {
+      "slack": "U_DHRUV",
+      "github": "dmehta",
+      "drive": "dhruv@acme.dev"
+    },
+    "forbidden_calls": [
+      "deactivate_user:U_DHRUVM",
+      "kick_from_channel:U_DHRUVM"
+    ],
+    "postconditions": [
+      {
+        "actor": "dhruv.malhotra@acme.dev",
+        "resource": "brand-guidelines",
+        "has_access": true
+      },
+      {
+        "actor": "dhruv@acme.dev",
+        "resource": "slack_account",
+        "has_access": false
+      }
+    ],
+    "failure_class_if_violated": "F1"
+  }
+}

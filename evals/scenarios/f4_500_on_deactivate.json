@@ -1,0 +1,27 @@
+{
+  "id": "f4_500_on_deactivate",
+  "description": "Slack 500s on the deactivation, the last and least reversible write. Everything before it is recorded with undo records.",
+  "seed": "acme",
+  "target": "dhruv@acme.dev",
+  "model": "heuristic",
+  "faults": [
+    {
+      "op": "deactivate_user",
+      "mode": "http_500",
+      "on_call": 1
+    }
+  ],
+  "patch": [],
+  "expect": {
+    "run_status": "dirty",
+    "undo_records_for_applied": true,
+    "no_writes_after_failure": true,
+    "findings_min": {
+      "F4": 1
+    },
+    "gate_status": {
+      "revoke:slack_account": "failed_apply"
+    },
+    "failure_class_if_violated": "F4"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "id": "h4_evidence_log_rows",
+  "description": "The Sheets evidence log carries one row per executed gate step, which is the artefact an auditor asks for.",
+  "seed": "acme",
+  "target": "dhruv@acme.dev",
+  "model": "heuristic",
+  "faults": [],
+  "patch": [],
+  "expect": {
+    "evidence_rows_match_gate_steps": true,
+    "required_calls": [
+      "append_rows:SHEET_EVIDENCE"
+    ],
+    "run_status": "clean",
+    "failure_class_if_violated": "H"
+  }
+}

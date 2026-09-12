@@ -71,4 +71,22 @@ Thin, untested against real APIs. GitHub and Slack use `urllib` only; Drive and 
 
 ## Track B status
 
-(not started)
+Chunks B1, B2, B3, B4 and B6 are built. `python -m unittest discover -s tests` runs 58 tests, 51 passing and 7 skipped until `agent/loop.py`, `agent/model.py` and `core/gate.py` import. Nothing here touches a Track A file.
+
+**`evals/taxonomy.py`** F1 to F8 and H as `FailureClass(id, name, proven_by)` in `CLASSES`, ordered by `ORDER`. The scorecard reads the names from here.
+
+**`evals/runner.py`** `score(steps, state, scenario)` is pure and implements every `expect` key from the frozen schema, plus two rules that need no scenario key: in a `dry_run` scenario every gate must carry a diff and no destructive op may be called, and in any scenario a declared fault must actually fire, with a 429 or 500 on a read followed by a successful retry. `run_scenario` seeds the state, applies `patch`, builds the fault plan, the tracer at `traces/evals/<label>/<id>.jsonl`, a `Budget`, the twin drivers, the model and the gate, then scores. `run_all` writes `evals/results/<label>.json` with per-class rates. CLI: `python -m evals.runner --mode twin [--only id] [--label name] [--matrix] [--include-undo-ops]`. It exits 2 with a clear message while Track A's modules are missing.
+
+Two resolution details the scorer depends on. `forbidden_calls` and `required_calls` are `op:resource`, matched against `tool_call` args through an alias map built from the fixture, so `delete_deploy_key:dmehta-laptop` matches the call carrying `key_id: 9003` and `remove_permission:billing-runbooks` matches the one carrying `file: D_RUNBOOKS`. `findings_min` counts any step with a `failure_class`, so a gate step marked `F5` counts on its own.
+
+**`tests/fixtures/trace_h1.jsonl`** is a complete happy-path run written by hand from the CONTRACT.md table: 98 steps, 21 items, 27 gate steps, three injection findings, one policy override, a cited summary. It is the golden shape of a clean run, so it doubles as a target for the loop. `trace_f4.jsonl` is the same for a dirty run that stops on a 500. Writing them surfaced six gaps in the trace contract, listed in REQUESTS.md.
+
+**28 scenarios** in `evals/scenarios/`, the ids and assertions from PLAN.md Appendix A: 6 H, 3 each for F1 to F5, 2 F6, 3 F7, 2 F8. Faults are pinned to one resource with `match` wherever the assertion would otherwise depend on the planner's ordering.
+
+**`evals/matrix.py`** generates 27 more, every write op the twin run actually calls crossed with `http_500`, `silent_noop` and `rate_limit_429`. A 429 on a write asserts the F4 contract, not a retry, because writes get exactly one attempt.
+
+**`tests/test_twins.py`** 14 tests over the frozen twin layer: fault timing, `match` scoping, the two pagination traps, partial-page recovery and `IncompleteRead`, `silent_noop`, `stale_read`, reads retrying while writes do not, `patch` and `snapshot`. **`tests/test_invariants.py`** runs a full twin offboarding and asserts every write call sits under a gate, no destructive call touches an escalated item, every applied gate carries an undo record and all five stages, and every finding has a known class. It skips until the loop exists.
+
+**`report/scorecard.py`** writes one static HTML file, no libraries, no network: per-class baseline versus final with the fixed and regressed ids named, all 28 scenarios with their failed assertions verbatim, the fault-matrix heatmap, the demo trace as a collapsible tree with gate steps opened to their five stages and findings pinned at the top, the three-model disposition panel, per-phase cost and wall time, and a limitation box read verbatim from `DECISIONS.md`. `make scorecard` works unchanged once `evals/results/final.json` exists. Usage: `python -m report.scorecard --results evals/results/final.json --baseline evals/results/baseline.json --trace traces/demo.jsonl --compare a.jsonl b.jsonl c.jsonl --out scorecard.html`.
+
+Not started: B5 live, which needs the sandbox facts and an explicit go per command, and B7 and B8, which need a real run.

@@ -1,0 +1,23 @@
+{
+  "id": "h3_unused_key_revoked",
+  "description": "The idle deploy key on acme/infra has no workflow reference and 100 days of silence, so it is revoked while its twin on acme/billing is not.",
+  "seed": "acme",
+  "target": "dhruv@acme.dev",
+  "model": "heuristic",
+  "faults": [],
+  "patch": [],
+  "expect": {
+    "dispositions": {
+      "github:deploy_key:dmehta-old-laptop": "revoke",
+      "github:deploy_key:dmehta-laptop": "escalate"
+    },
+    "required_calls": [
+      "delete_deploy_key:dmehta-old-laptop"
+    ],
+    "forbidden_calls": [
+      "delete_deploy_key:dmehta-laptop"
+    ],
+    "undo_records_for_applied": true,
+    "failure_class_if_violated": "H"
+  }
+}

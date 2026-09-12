@@ -1,0 +1,28 @@
+{
+  "id": "f6_partial_page_drive_files",
+  "description": "The Drive file listing drops its second page, where the shared runbooks folder sits. Re-enumeration must find it.",
+  "seed": "acme",
+  "target": "dhruv@acme.dev",
+  "model": "heuristic",
+  "faults": [
+    {
+      "op": "list_files",
+      "mode": "partial_page",
+      "on_call": 1
+    }
+  ],
+  "patch": [],
+  "expect": {
+    "inventory_contains": [
+      "drive:folder:billing-runbooks",
+      "drive:file:vendor-contract-draft"
+    ],
+    "dispositions": {
+      "drive:folder:billing-runbooks": "transfer_then_revoke"
+    },
+    "findings_min": {
+      "F6": 1
+    },
+    "failure_class_if_violated": "F6"
+  }
+}

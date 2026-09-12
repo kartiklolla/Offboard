@@ -1,0 +1,27 @@
+{
+  "id": "h6_rate_limit_retry",
+  "description": "GitHub rate-limits the first repo listing; the read retries and the inventory is still complete.",
+  "seed": "acme",
+  "target": "dhruv@acme.dev",
+  "model": "heuristic",
+  "faults": [
+    {
+      "op": "list_repos",
+      "mode": "rate_limit_429",
+      "on_call": 1
+    }
+  ],
+  "patch": [],
+  "expect": {
+    "inventory_contains": [
+      "github:org_member:acme",
+      "github:repo_collaborator:acme/billing",
+      "github:repo_collaborator:acme/legacy-billing",
+      "github:repo_collaborator:acme/infra",
+      "github:deploy_key:dmehta-laptop",
+      "github:deploy_key:dmehta-old-laptop"
+    ],
+    "run_status": "clean",
+    "failure_class_if_violated": "H"
+  }
+}

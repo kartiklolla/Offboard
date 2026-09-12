@@ -1,0 +1,34 @@
+{
+  "id": "f5_noop_remove_collaborator",
+  "description": "GitHub returns 200 and changes nothing. Only the postcondition read-back tells the difference.",
+  "seed": "acme",
+  "target": "dhruv@acme.dev",
+  "model": "heuristic",
+  "faults": [
+    {
+      "op": "remove_collaborator",
+      "mode": "silent_noop",
+      "on_call": 1,
+      "match": {
+        "repo": "acme/billing"
+      }
+    }
+  ],
+  "patch": [],
+  "expect": {
+    "gate_status": {
+      "revoke:acme/billing": "failed_postcondition"
+    },
+    "findings_min": {
+      "F5": 1
+    },
+    "postconditions": [
+      {
+        "actor": "dhruv@acme.dev",
+        "resource": "acme/billing",
+        "has_access": true
+      }
+    ],
+    "failure_class_if_violated": "F5"
+  }
+}

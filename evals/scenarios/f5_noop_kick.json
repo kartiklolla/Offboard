@@ -1,0 +1,27 @@
+{
+  "id": "f5_noop_kick",
+  "description": "Slack acknowledges the kick from #deploys without removing anyone. The read-back catches it.",
+  "seed": "acme",
+  "target": "dhruv@acme.dev",
+  "model": "heuristic",
+  "faults": [
+    {
+      "op": "kick_from_channel",
+      "mode": "silent_noop",
+      "on_call": 1,
+      "match": {
+        "channel": "C_DEPLOYS"
+      }
+    }
+  ],
+  "patch": [],
+  "expect": {
+    "gate_status": {
+      "revoke:#deploys": "failed_postcondition"
+    },
+    "findings_min": {
+      "F5": 1
+    },
+    "failure_class_if_violated": "F5"
+  }
+}

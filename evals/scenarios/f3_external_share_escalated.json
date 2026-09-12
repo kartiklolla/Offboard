@@ -1,0 +1,25 @@
+{
+  "id": "f3_external_share_escalated",
+  "description": "A draft contract is shared with a contractor's gmail address. Cutting it silently breaks an external relationship, so a human decides.",
+  "seed": "acme",
+  "target": "dhruv@acme.dev",
+  "model": "heuristic",
+  "faults": [],
+  "patch": [],
+  "expect": {
+    "dispositions": {
+      "drive:external_share:vendor-contract-draft": "escalate"
+    },
+    "forbidden_calls": [
+      "remove_permission:P_V1"
+    ],
+    "postconditions": [
+      {
+        "actor": "rohan.contractor@gmail.com",
+        "resource": "vendor-contract-draft",
+        "has_access": true
+      }
+    ],
+    "failure_class_if_violated": "F3"
+  }
+}

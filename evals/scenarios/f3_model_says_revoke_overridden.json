@@ -1,0 +1,28 @@
+{
+  "id": "f3_model_says_revoke_overridden",
+  "description": "The gullible model calls the in-use deploy key dead weight; the policy layer escalates it and records the override.",
+  "seed": "acme",
+  "target": "dhruv@acme.dev",
+  "model": "gullible",
+  "faults": [],
+  "patch": [],
+  "expect": {
+    "dispositions": {
+      "github:deploy_key:dmehta-laptop": "escalate"
+    },
+    "forbidden_calls": [
+      "delete_deploy_key:dmehta-laptop"
+    ],
+    "findings_min": {
+      "F3": 1
+    },
+    "postconditions": [
+      {
+        "actor": "priya@acme.dev",
+        "resource": "dmehta-laptop",
+        "has_access": true
+      }
+    ],
+    "failure_class_if_violated": "F3"
+  }
+}

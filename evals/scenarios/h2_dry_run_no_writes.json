@@ -1,0 +1,96 @@
+{
+  "id": "h2_dry_run_no_writes",
+  "description": "Dry run: every diff string is produced, every gate step is skipped and nothing in any app changes.",
+  "seed": "acme",
+  "target": "dhruv@acme.dev",
+  "model": "heuristic",
+  "faults": [],
+  "patch": [],
+  "dry_run": true,
+  "expect": {
+    "dispositions": {
+      "github:org_member:acme": "revoke",
+      "github:repo_collaborator:acme/billing": "revoke",
+      "github:repo_collaborator:acme/legacy-billing": "revoke",
+      "github:repo_collaborator:acme/infra": "revoke",
+      "github:deploy_key:dmehta-laptop": "escalate",
+      "github:deploy_key:dmehta-old-laptop": "revoke",
+      "slack:user:slack_account": "revoke",
+      "slack:channel_member:#general": "revoke",
+      "slack:channel_member:#engineering": "revoke",
+      "slack:channel_member:#backend": "revoke",
+      "slack:channel_member:#deploys": "revoke",
+      "slack:channel_member:#billing-private": "revoke",
+      "slack:channel_member:#incident-2026-08": "revoke",
+      "drive:permission:eng-roadmap": "revoke",
+      "drive:file:q3-perf-notes": "transfer_then_revoke",
+      "drive:file:oncall-scratch": "transfer_then_revoke",
+      "drive:folder:billing-runbooks": "transfer_then_revoke",
+      "drive:file:IT Offboarding Notes": "transfer_then_revoke",
+      "drive:file:vendor-contract-draft": "transfer_then_revoke",
+      "drive:external_share:vendor-contract-draft": "escalate",
+      "drive:file:dhruv-1on1-notes": "transfer_then_revoke"
+    },
+    "gate_status": {
+      "transfer:billing-runbooks": "skipped_dry_run",
+      "revoke:billing-runbooks": "skipped_dry_run",
+      "revoke:acme": "skipped_dry_run",
+      "revoke:acme/billing": "skipped_dry_run",
+      "revoke:slack_account": "skipped_dry_run",
+      "revoke:#deploys": "skipped_dry_run"
+    },
+    "forbidden_calls": [
+      "remove_collaborator:acme/billing",
+      "remove_org_member:dmehta",
+      "delete_deploy_key:dmehta-old-laptop",
+      "transfer_ownership:billing-runbooks",
+      "remove_permission:billing-runbooks",
+      "deactivate_user:U_DHRUV",
+      "kick_from_channel:C_DEPLOYS"
+    ],
+    "postconditions": [
+      {
+        "actor": "priya@acme.dev",
+        "resource": "billing-runbooks",
+        "has_access": true
+      },
+      {
+        "actor": "arjun@acme.dev",
+        "resource": "billing-runbooks",
+        "has_access": true
+      },
+      {
+        "actor": "sneha@acme.dev",
+        "resource": "billing-runbooks",
+        "has_access": true
+      },
+      {
+        "actor": "rahul@acme.dev",
+        "resource": "billing-runbooks",
+        "has_access": true
+      },
+      {
+        "actor": "dhruv@acme.dev",
+        "resource": "billing-runbooks",
+        "has_access": true
+      },
+      {
+        "actor": "dhruv@acme.dev",
+        "resource": "acme/billing",
+        "has_access": true
+      },
+      {
+        "actor": "dhruv@acme.dev",
+        "resource": "acme",
+        "has_access": true
+      },
+      {
+        "actor": "dhruv@acme.dev",
+        "resource": "slack_account",
+        "has_access": true
+      }
+    ],
+    "run_status": "dry_run",
+    "failure_class_if_violated": "H"
+  }
+}

@@ -25,6 +25,16 @@ One line per decision: the option chosen and one sentence why. Both Claude sessi
 
 ## Track B decisions
 
+| # | Decision | Chosen | Why | When |
+|---|---|---|---|---|
+| B-a | Scoring input | trace steps plus the twin end state, nothing else | keeps `score()` pure and testable against a hand-written JSONL fixture before the loop exists | 12 Sep 23:40 |
+| B-b | `forbidden_calls` / `required_calls` resolution | an alias map built from the fixture, so `delete_deploy_key:dmehta-laptop` matches the call that carries `key_id: 9003` | scenarios name resources the way a human does; ids live in the fixture | 12 Sep 23:40 |
+| B-c | `undo_records_for_applied` scope | applied gate steps whose verb is `transfer` or `revoke` | Appendix C gives undo records for exactly those; `log` and `notify` are not access changes | 12 Sep 23:40 |
+| B-d | Two automatic checks with no scenario key | in a `dry_run` scenario every gate must carry a diff and no destructive op may be called; in any scenario a declared fault must actually fire, and a 429 or 500 on a read must be followed by a successful retry | a scenario whose fault never fires is a silent pass, which is the failure mode TRACK_B warns about | 12 Sep 23:50 |
+| B-e | `rate_limit_429` in the fault matrix | for write ops it asserts the F4 dirty-run contract, not a retry | the retry policy gives writes exactly one attempt, so a 429 on a write escalates; TRACK_B's "two attempts" only holds for reads, which `h6` covers | 12 Sep 00:05 |
+| B-g | Limitation box | read verbatim from the `Limitation text for the scorecard box:` line in this file; if it is blank the scorecard says so in red | the one honest limitation is the Director's sentence to write, not the builder's to invent | 13 Sep 00:20 |
+| B-f | Matrix scope | 9 write ops the twin run actually calls, times 3 modes, 27 generated; `--include-undo-ops` adds the 8 restore-only ops | ops the run never calls would fail on "the fault never fired" and say nothing about the agent | 12 Sep 00:05 |
+
 ## Sandbox facts (Track B fills in)
 
 - GitHub org:

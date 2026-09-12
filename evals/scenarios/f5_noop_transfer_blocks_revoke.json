@@ -1,0 +1,57 @@
+{
+  "id": "f5_noop_transfer_blocks_revoke",
+  "description": "The ownership transfer silently does nothing, so the revoke that depends on it must never run and the folder must not be orphaned.",
+  "seed": "acme",
+  "target": "dhruv@acme.dev",
+  "model": "heuristic",
+  "faults": [
+    {
+      "op": "transfer_ownership",
+      "mode": "silent_noop",
+      "on_call": 1,
+      "match": {
+        "file": "D_RUNBOOKS"
+      }
+    }
+  ],
+  "patch": [],
+  "expect": {
+    "gate_status": {
+      "transfer:billing-runbooks": "failed_postcondition"
+    },
+    "findings_min": {
+      "F5": 1
+    },
+    "forbidden_calls": [
+      "remove_permission:billing-runbooks"
+    ],
+    "postconditions": [
+      {
+        "actor": "priya@acme.dev",
+        "resource": "billing-runbooks",
+        "has_access": true
+      },
+      {
+        "actor": "arjun@acme.dev",
+        "resource": "billing-runbooks",
+        "has_access": true
+      },
+      {
+        "actor": "sneha@acme.dev",
+        "resource": "billing-runbooks",
+        "has_access": true
+      },
+      {
+        "actor": "rahul@acme.dev",
+        "resource": "billing-runbooks",
+        "has_access": true
+      },
+      {
+        "actor": "dhruv@acme.dev",
+        "resource": "billing-runbooks",
+        "has_access": true
+      }
+    ],
+    "failure_class_if_violated": "F5"
+  }
+}

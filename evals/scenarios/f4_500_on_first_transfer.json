@@ -1,0 +1,57 @@
+{
+  "id": "f4_500_on_first_transfer",
+  "description": "The transfer of the shared folder 500s. The folder must still belong to Dhruv and its four viewers must still see it.",
+  "seed": "acme",
+  "target": "dhruv@acme.dev",
+  "model": "heuristic",
+  "faults": [
+    {
+      "op": "transfer_ownership",
+      "mode": "http_500",
+      "on_call": 1,
+      "match": {
+        "file": "D_RUNBOOKS"
+      }
+    }
+  ],
+  "patch": [],
+  "expect": {
+    "run_status": "dirty",
+    "undo_records_for_applied": true,
+    "no_writes_after_failure": true,
+    "gate_status": {
+      "transfer:billing-runbooks": "failed_apply"
+    },
+    "forbidden_calls": [
+      "remove_permission:billing-runbooks"
+    ],
+    "postconditions": [
+      {
+        "actor": "priya@acme.dev",
+        "resource": "billing-runbooks",
+        "has_access": true
+      },
+      {
+        "actor": "arjun@acme.dev",
+        "resource": "billing-runbooks",
+        "has_access": true
+      },
+      {
+        "actor": "sneha@acme.dev",
+        "resource": "billing-runbooks",
+        "has_access": true
+      },
+      {
+        "actor": "rahul@acme.dev",
+        "resource": "billing-runbooks",
+        "has_access": true
+      },
+      {
+        "actor": "dhruv@acme.dev",
+        "resource": "billing-runbooks",
+        "has_access": true
+      }
+    ],
+    "failure_class_if_violated": "F4"
+  }
+}

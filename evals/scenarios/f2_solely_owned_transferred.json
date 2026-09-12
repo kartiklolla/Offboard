@@ -1,0 +1,38 @@
+{
+  "id": "f2_solely_owned_transferred",
+  "description": "A file nobody else can see is still transferred to the manager rather than orphaned in a deactivated account.",
+  "seed": "acme",
+  "target": "dhruv@acme.dev",
+  "model": "heuristic",
+  "faults": [],
+  "patch": [],
+  "expect": {
+    "dispositions": {
+      "drive:file:q3-perf-notes": "transfer_then_revoke"
+    },
+    "order_before": [
+      [
+        "transfer:q3-perf-notes",
+        "revoke:q3-perf-notes"
+      ]
+    ],
+    "postconditions": [
+      {
+        "actor": "priya@acme.dev",
+        "resource": "q3-perf-notes",
+        "has_access": true
+      },
+      {
+        "actor": "dhruv@acme.dev",
+        "resource": "q3-perf-notes",
+        "has_access": false
+      },
+      {
+        "actor": "priya@acme.dev",
+        "resource": "oncall-scratch",
+        "has_access": true
+      }
+    ],
+    "failure_class_if_violated": "F2"
+  }
+}

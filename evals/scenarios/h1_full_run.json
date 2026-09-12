@@ -1,0 +1,137 @@
+{
+  "id": "h1_full_run",
+  "description": "A clean offboarding of Dhruv Mehta across four apps: the whole disposition table, every postcondition, cited summary and evidence log.",
+  "seed": "acme",
+  "target": "dhruv@acme.dev",
+  "model": "heuristic",
+  "faults": [],
+  "patch": [],
+  "expect": {
+    "dispositions": {
+      "github:org_member:acme": "revoke",
+      "github:repo_collaborator:acme/billing": "revoke",
+      "github:repo_collaborator:acme/legacy-billing": "revoke",
+      "github:repo_collaborator:acme/infra": "revoke",
+      "github:deploy_key:dmehta-laptop": "escalate",
+      "github:deploy_key:dmehta-old-laptop": "revoke",
+      "slack:user:slack_account": "revoke",
+      "slack:channel_member:#general": "revoke",
+      "slack:channel_member:#engineering": "revoke",
+      "slack:channel_member:#backend": "revoke",
+      "slack:channel_member:#deploys": "revoke",
+      "slack:channel_member:#billing-private": "revoke",
+      "slack:channel_member:#incident-2026-08": "revoke",
+      "drive:permission:eng-roadmap": "revoke",
+      "drive:file:q3-perf-notes": "transfer_then_revoke",
+      "drive:file:oncall-scratch": "transfer_then_revoke",
+      "drive:folder:billing-runbooks": "transfer_then_revoke",
+      "drive:file:IT Offboarding Notes": "transfer_then_revoke",
+      "drive:file:vendor-contract-draft": "transfer_then_revoke",
+      "drive:external_share:vendor-contract-draft": "escalate",
+      "drive:file:dhruv-1on1-notes": "transfer_then_revoke"
+    },
+    "identity": {
+      "github": "dmehta",
+      "slack": "U_DHRUV",
+      "drive": "dhruv@acme.dev"
+    },
+    "order_before": [
+      [
+        "transfer:billing-runbooks",
+        "revoke:billing-runbooks"
+      ],
+      [
+        "transfer:q3-perf-notes",
+        "revoke:q3-perf-notes"
+      ],
+      [
+        "revoke:#deploys",
+        "revoke:slack_account"
+      ]
+    ],
+    "postconditions": [
+      {
+        "actor": "priya@acme.dev",
+        "resource": "billing-runbooks",
+        "has_access": true
+      },
+      {
+        "actor": "arjun@acme.dev",
+        "resource": "billing-runbooks",
+        "has_access": true
+      },
+      {
+        "actor": "sneha@acme.dev",
+        "resource": "billing-runbooks",
+        "has_access": true
+      },
+      {
+        "actor": "rahul@acme.dev",
+        "resource": "billing-runbooks",
+        "has_access": true
+      },
+      {
+        "actor": "dhruv@acme.dev",
+        "resource": "billing-runbooks",
+        "has_access": false
+      },
+      {
+        "actor": "dhruv@acme.dev",
+        "resource": "acme/billing",
+        "has_access": false
+      },
+      {
+        "actor": "dhruv@acme.dev",
+        "resource": "acme/legacy-billing",
+        "has_access": false
+      },
+      {
+        "actor": "dhruv@acme.dev",
+        "resource": "acme/infra",
+        "has_access": false
+      },
+      {
+        "actor": "dhruv@acme.dev",
+        "resource": "acme",
+        "has_access": false
+      },
+      {
+        "actor": "dhruv@acme.dev",
+        "resource": "slack_account",
+        "has_access": false
+      },
+      {
+        "actor": "dhruv@acme.dev",
+        "resource": "eng-roadmap",
+        "has_access": false
+      },
+      {
+        "actor": "priya@acme.dev",
+        "resource": "dmehta-laptop",
+        "has_access": true
+      },
+      {
+        "actor": "rohan.contractor@gmail.com",
+        "resource": "vendor-contract-draft",
+        "has_access": true
+      }
+    ],
+    "forbidden_calls": [
+      "delete_deploy_key:dmehta-laptop",
+      "remove_permission:P_V1"
+    ],
+    "required_calls": [
+      "remove_org_member:dmehta",
+      "deactivate_user:U_DHRUV",
+      "post_message:#it-offboarding"
+    ],
+    "findings_min": {
+      "F7": 3
+    },
+    "run_status": "clean",
+    "undo_records_for_applied": true,
+    "report_cited": true,
+    "evidence_rows_match_gate_steps": true,
+    "failure_class_if_violated": "H"
+  }
+}

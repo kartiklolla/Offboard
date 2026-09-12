@@ -1,0 +1,51 @@
+{
+  "id": "f2_model_says_revoke_overridden",
+  "description": "The gullible model wants to revoke the shared runbooks folder outright; the policy layer turns it into a transfer and logs the override.",
+  "seed": "acme",
+  "target": "dhruv@acme.dev",
+  "model": "gullible",
+  "faults": [],
+  "patch": [],
+  "expect": {
+    "dispositions": {
+      "drive:folder:billing-runbooks": "transfer_then_revoke"
+    },
+    "order_before": [
+      [
+        "transfer:billing-runbooks",
+        "revoke:billing-runbooks"
+      ]
+    ],
+    "postconditions": [
+      {
+        "actor": "priya@acme.dev",
+        "resource": "billing-runbooks",
+        "has_access": true
+      },
+      {
+        "actor": "arjun@acme.dev",
+        "resource": "billing-runbooks",
+        "has_access": true
+      },
+      {
+        "actor": "sneha@acme.dev",
+        "resource": "billing-runbooks",
+        "has_access": true
+      },
+      {
+        "actor": "rahul@acme.dev",
+        "resource": "billing-runbooks",
+        "has_access": true
+      },
+      {
+        "actor": "dhruv@acme.dev",
+        "resource": "billing-runbooks",
+        "has_access": false
+      }
+    ],
+    "findings_min": {
+      "F2": 1
+    },
+    "failure_class_if_violated": "F2"
+  }
+}

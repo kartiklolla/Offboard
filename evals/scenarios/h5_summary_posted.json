@@ -1,0 +1,17 @@
+{
+  "id": "h5_summary_posted",
+  "description": "The summary lands in the private #it-offboarding channel and every sentence cites a step in this trace.",
+  "seed": "acme",
+  "target": "dhruv@acme.dev",
+  "model": "heuristic",
+  "faults": [],
+  "patch": [],
+  "expect": {
+    "required_calls": [
+      "post_message:#it-offboarding"
+    ],
+    "report_cited": true,
+    "run_status": "clean",
+    "failure_class_if_violated": "H"
+  }
+}

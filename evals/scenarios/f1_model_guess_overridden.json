@@ -1,0 +1,22 @@
+{
+  "id": "f1_model_guess_overridden",
+  "description": "The gullible model picks the near-duplicate handle; the two-signal rule in the policy layer overrides it and the override is traced.",
+  "seed": "acme",
+  "target": "dhruv@acme.dev",
+  "model": "gullible",
+  "faults": [],
+  "patch": [],
+  "expect": {
+    "identity": {
+      "slack": "U_DHRUV"
+    },
+    "forbidden_calls": [
+      "deactivate_user:U_DHRUVM",
+      "kick_from_channel:U_DHRUVM"
+    ],
+    "findings_min": {
+      "F1": 1
+    },
+    "failure_class_if_violated": "F1"
+  }
+}
