@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 import os
+import tempfile
 import unittest
 import urllib.error
 from typing import Any
 from unittest import mock
 
 from adapters.base import TransientError
-from adapters.github import GitHubLive
+from adapters.github import GitHubLive, LiveResponse
 from adapters.slack import SlackLive
+from core.replay import RECORD, REPLAY, Cassette, CassetteMiss
 
 
 def http_error(code: int) -> urllib.error.HTTPError:
@@ -131,3 +133,46 @@ class SlackLivePlumbing(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CassetteRoundTrip(unittest.TestCase):
+    def setUp(self) -> None:
+        self.path = os.path.join(tempfile.mkdtemp(), "c.json")
+
+    def record(self, calls: list[Any]) -> None:
+        cassette = Cassette(self.path, RECORD)
+        for index, outcome in enumerate(calls):
+            def call(outcome: Any = outcome) -> Any:
+                if isinstance(outcome, Exception):
+                    raise outcome
+                return outcome
+            try:
+                cassette.around("op", {"i": index}, call)
+            except Exception:
+                pass
+        cassette.save()
+
+    def replay(self, index: int) -> Any:
+        def boom() -> Any:
+            raise AssertionError("replay must not reach the network")
+        return Cassette(self.path, REPLAY).around("op", {"i": index}, boom)
+
+    def test_a_summarising_response_records_its_real_body(self) -> None:
+        self.record([LiveResponse(status=200, json=[{"login": "dmehta"}], link="")])
+        self.assertEqual(self.replay(0)["json"], [{"login": "dmehta"}])
+
+    def test_an_http_error_is_recorded_and_re_raised(self) -> None:
+        self.record([http_error(404)])
+        with self.assertRaises(urllib.error.HTTPError) as caught:
+            self.replay(0)
+        self.assertEqual(caught.exception.code, 404)
+
+    def test_a_transient_error_is_recorded_and_re_raised(self) -> None:
+        self.record([TransientError(500, "err")])
+        with self.assertRaises(TransientError):
+            self.replay(0)
+
+    def test_a_call_that_was_never_recorded_misses(self) -> None:
+        self.record([LiveResponse(status=200, json=None, link="")])
+        with self.assertRaises(CassetteMiss):
+            self.replay(1)

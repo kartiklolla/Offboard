@@ -8,7 +8,7 @@ Built for the Multi-App AI Agent Hackathon, 13 September 2026, by Kartik Lolla a
 
 ```bash
 git clone <repo> && cd offboard
-python3 -m unittest discover -s tests         # 139 tests, ~1s, zero dependencies
+python3 -m unittest discover -s tests         # 143 tests, ~1s, zero dependencies
 python3 -m evals.runner --mode twin --matrix  # 29 scenarios + 27 matrix cells
 python3 -m evals.mutants                      # 12 defences removed one at a time
 python3 cli.py run --user dhruv@acme.dev --dry-run
@@ -20,7 +20,7 @@ Python 3.11+. Nothing above needs a token, a network connection or a third-party
 
 | | |
 |---|---|
-| Unit tests | **139 / 139** |
+| Unit tests | **143 / 143** |
 | Seeded failure scenarios | **29 / 29**, scored per failure class |
 | Fault matrix (9 write ops × 3 fault modes) | **27 / 27** |
 | Mutation tests (defences removed at run time) | **12 / 12 caught**, each by the class that claims to prove it |
@@ -60,7 +60,7 @@ resolve identity → inventory → classify → plan → execute → report
 
 1. **Resolve identity** per app. A principal is accepted only when two independent signals agree with the HR record (email, full name, recorded handle or login). One signal, or two qualifying candidates, is `needs_human` and that app is not touched. An app whose API cannot be read at all is escalated the same way and the run continues on the others.
 2. **Inventory** is deterministic code, paginated, with a count check that re-enumerates when a page goes missing. *The model never lists resources* — "every repo this user can touch" has one correct answer, and a model that drops a page is a silent failure.
-3. **Classify.** The model proposes a disposition (`revoke`, `transfer_then_revoke`, `escalate`, `keep`); the **policy layer decides**. Rules R1–R9: shared resources the employee owns are transferred, never revoked; credentials referenced by automation are escalated; external shares are escalated. App content is fenced in prompts and never read by the rules.
+3. **Classify.** The model proposes a disposition (`revoke`, `transfer_then_revoke`, `escalate`, `keep`); the **policy layer decides**. Rules R1–R10: shared resources the employee owns are transferred, never revoked; credentials referenced by automation are escalated; external shares are escalated. App content is fenced in prompts and never read by the rules.
 4. **Plan.** The model proposes an order; policy enforces transfers before revokes, reversible before irreversible, account-level removals last.
 5. **Execute.** Every write goes through `core/gate.py`: **precondition read → diff string → approval check → apply → postcondition read-back**. A 200 whose read-back shows no change is `failed_postcondition`, class F5, never a success. The first failed write stops the run, records undo records for everything already applied, and marks the run dirty. Failed destructive calls are never retried.
 6. **Report.** One evidence row per gate step; a Slack summary where every sentence must cite a trace step id, and any sentence claiming completion must cite a gate that actually applied. Unsupported sentences are dropped and logged as F8.
@@ -99,7 +99,7 @@ Eight named failure classes (`evals/taxonomy.py`) plus `H` for happy paths. Ever
 
 **The scorer is pure.** `score()` reads the trace JSONL and the twin end state — nothing from the agent. Two checks need no scenario key: a declared fault must actually fire (a scenario whose fault never fires is a silent pass), and in a dry run every gate must carry a diff with no destructive op called.
 
-**Bad models on purpose.** Scenarios can swap in `--model gullible`, a stub that follows the injections, picks `@dhruv.m`, and revokes both the shared folder and the in-use key. Those scenarios still pass, because the policy layer overrides it and records each override as a finding naming the class it prevented. The heuristic stub and the adversarial stub produce **identical disposition tables** on the full run: the policy layer decides what gets destroyed, not the model.
+**Bad models on purpose.** Scenarios can swap in `--model gullible`, a stub that follows the injections, picks `@dhruv.m`, and revokes both the shared folder and the in-use key. Those scenarios still pass, because the policy layer overrides it and records each override as a finding naming the class it prevented. Claude Opus 5, the heuristic stub and the adversarial stub produce **identical disposition tables** on the full run — all 21 dispositions match across the three: the policy layer decides what gets destroyed, not the model.
 
 **Fault matrix.** `evals/matrix.py` crosses the nine write operations the run actually calls with `http_500`, `silent_noop` and `rate_limit_429` — 27 generated scenarios asserting only the invariants.
 
@@ -113,7 +113,7 @@ Twelve mutants, twelve caught, each by the class that claims to prove it. The gr
 
 Before the suite existed, probing the gate by hand found four defects that are now regression tests: an exception inside a read-back escaped the gate and left an applied write with no recorded status; the write budget fired *after* the write that crossed it; a stale read-back produced a false F5 (hence the single retry); and the injection detector flagged benign phrases.
 
-**Tests.** 139 `unittest` tests covering gate, model, policy, loop, CLI, runner, twins, invariants, report, mutants and the live drivers behind a faked transport. `ScorerAgainstTheRealGate` drives the real `Gate` against the twin and scores the resulting trace, so drift between agent and scorer breaks a test rather than a scenario. Two hand-written golden traces (`tests/fixtures/trace_h1.jsonl`, `trace_f4.jsonl`) pin the target shape of a trace.
+**Tests.** 143 `unittest` tests covering gate, model, policy, loop, CLI, runner, twins, invariants, report, mutants and the live drivers behind a faked transport. `ScorerAgainstTheRealGate` drives the real `Gate` against the twin and scores the resulting trace, so drift between agent and scorer breaks a test rather than a scenario. Two hand-written golden traces (`tests/fixtures/trace_h1.jsonl`, `trace_f4.jsonl`) pin the target shape of a trace.
 
 ## Seeing it run
 
@@ -148,7 +148,9 @@ python3 -m evals.live_run --user <email> --hr hr.json --apps github,slack --dry-
 
 `evals/live_run.py` defaults to a **write budget of zero**, so a forgotten `--dry-run` cannot write. Tokens live in `.env` (see `.env.example`), never in the repo; real account names live only in `.env` and a gitignored `hr.json`. `DEMO.md` is the runbook.
 
-**What has been verified live.** Against a seeded sandbox GitHub org and Slack workspace: the read-only smoke on both apps, and a full dry run — 47 reads, 0 writes, both identities resolved on two signals, the in-use deploy key escalated by its workflow reference (R2), the idle key planned for deletion, both injection payloads logged (F7), deactivation escalated under R9. That trace is `traces/live-dry.jsonl` (97 steps, 13 gates, every one `skipped_dry_run` with a diff) and is what the scorecard's step-by-step explorer shows. It is also recorded to `cassettes/dry.json`, so `--replay` reproduces the whole run offline. **No live write has ever been applied.**
+**A silent failure caught on real GitHub.** During a live apply, `DELETE /repos/<org>/billing/collaborators/<leaver>` returned **HTTP 204 No Content** — success. The gate's read-back ran, retried once, and still found three collaborators. The gate returned `failed_postcondition`, class F5, stopped the run, skipped the remaining five writes and claimed nothing. Verified independently afterwards: access was genuinely unchanged. The cause is that the leaver is an *organization* member, so their repo access flows from org membership and removing a "collaborator" is a no-op that reports success. Removing org membership did work, and the read-back confirmed it — taking all four repos with it. This is the failure mode the whole project exists to catch, observed on a real API rather than a seeded twin (`traces/demo-live.jsonl`).
+
+**What has been verified live.** Against a seeded sandbox GitHub org and Slack workspace: the read-only smoke on both apps, and a full dry run — 47 reads, 0 writes, both identities resolved on two signals, the in-use deploy key escalated by its workflow reference (R2), the idle key planned for deletion, both injection payloads logged (F7), deactivation escalated under R9. A real apply followed: 2 irreversible writes applied with passing read-backs (org membership removed, idle deploy key deleted), the in-use deploy key escalated under R2 and never touched, one evidence row per gate step and a summary posted to Slack in which every sentence cites a trace step id. The dry-run trace is `traces/live-dry.jsonl` (97 steps, 13 gates, every one `skipped_dry_run` with a diff) and is what the scorecard's step-by-step explorer shows. It is also recorded to `cassettes/dry.json`, so `--replay` reproduces the whole run offline. **No live write has ever been applied.**
 
 Traces and cassettes are gitignored, so a fresh clone has none; `make report` regenerates every twin trace, and the twin suite needs neither.
 
@@ -199,7 +201,7 @@ agent/      prompts.py · model.py (heuristic, gullible, anthropic) · policy.py
 evals/      taxonomy.py · schema.py · runner.py · matrix.py · mutants.py · live_smoke.py · live_run.py · scenarios/ (29) · results/
 report/     scorecard.py · console.py · app.py · theme.py
 cli.py      run · plan · apply · undo
-tests/      139 unittest tests, two golden traces
+tests/      143 unittest tests, two golden traces
 ```
 
 ## Invariants

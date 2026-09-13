@@ -98,9 +98,13 @@ def _candidates(app: str, drivers: Drivers, hr_record: dict) -> list[dict]:
     return []
 
 
+def _access_apps(config: RunConfig) -> tuple[str, ...]:
+    return tuple(a for a in config.apps if a in APPS)
+
+
 def _resolve_identity(config: RunConfig, drivers: Drivers, model: Any, tracer: Tracer, policy: P.Policy, state: RunState) -> None:
     with tracer.step("phase", "resolve_identity"):
-        for app in config.apps:
+        for app in _access_apps(config):
             candidates = _candidates(app, drivers, state.hr_record)
             proposal = _model_call(tracer, model, "resolve_identity", app, state.hr_record, candidates)
             identity = policy.resolve_identity(app, candidates, proposal.get("pick"), proposal.get("reason", ""))
@@ -114,7 +118,7 @@ def _resolve_identity(config: RunConfig, drivers: Drivers, model: Any, tracer: T
 
 def _inventory(config: RunConfig, drivers: Drivers, tracer: Tracer, state: RunState) -> None:
     with tracer.step("phase", "inventory"):
-        for app in config.apps:
+        for app in _access_apps(config):
             identity = state.identities[app]
             if not identity.resolved:
                 tracer.event("inventory", app, result={"keys": [], "skipped": "identity not resolved"})

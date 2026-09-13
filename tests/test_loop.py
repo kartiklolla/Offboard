@@ -7,7 +7,7 @@ import unittest
 
 from adapters.base import DESTRUCTIVE_OPS
 from adapters.registry import build_drivers
-from agent.loop import RunConfig, run_offboarding
+from agent.loop import RunConfig, _access_apps, run_offboarding
 from agent.model import build_model
 from core.gate import Gate
 from core.trace import Tracer, load_trace
@@ -251,3 +251,13 @@ class Modes(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class NonAccessApps(unittest.TestCase):
+    def test_sheets_is_an_evidence_destination_not_an_identity(self) -> None:
+        config = RunConfig(target_email="dhruv@acme.dev", hr=[], apps=("github", "slack", "sheets"))
+        self.assertEqual(_access_apps(config), ("github", "slack"))
+
+    def test_drive_stays_an_access_app(self) -> None:
+        config = RunConfig(target_email="dhruv@acme.dev", hr=[], apps=("github", "slack", "drive", "sheets"))
+        self.assertEqual(_access_apps(config), ("github", "slack", "drive"))

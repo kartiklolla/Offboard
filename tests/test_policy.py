@@ -134,6 +134,14 @@ class DispositionRules(PolicyBase):
         key.hints["age_hours"] = 300.0
         self.assertEqual(self.policy.rule_for(key).disposition, P.REVOKE)
 
+    def test_the_general_channel_is_escalated_not_kicked(self) -> None:
+        channel = next(i for i in self.items if i.kind == "channel_member")
+        self.assertEqual(self.policy.rule_for(channel).disposition, P.REVOKE)
+        channel.hints["is_general"] = True
+        rule = self.policy.rule_for(channel)
+        self.assertEqual(rule.disposition, P.ESCALATE)
+        self.assertEqual(rule.rule, "R10")
+
     def test_cautious_model_is_recorded_not_flagged(self) -> None:
         proposals = [{"key": i.key, "disposition": "needs_human", "reason": "unsure"} for i in self.items]
         d = self.policy.enforce(self.items, proposals)

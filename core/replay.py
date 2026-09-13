@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import hashlib
+import importlib
 import json
 import os
+import urllib.error
 from typing import Any, Callable, Optional
 
 OFF, RECORD, REPLAY = "off", "record", "replay"
@@ -10,6 +12,35 @@ OFF, RECORD, REPLAY = "off", "record", "replay"
 
 class CassetteMiss(KeyError):
     pass
+
+
+def _plain(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {k: _plain(dict.__getitem__(value, k)) for k in dict.keys(value)}
+    if isinstance(value, list):
+        return [_plain(v) for v in value]
+    return value
+
+
+def _capture(exc: BaseException) -> dict:
+    kind = type(exc)
+    record = {"type": f"{kind.__module__}.{kind.__qualname__}", "args": [str(a) for a in exc.args]}
+    if isinstance(exc, urllib.error.HTTPError):
+        record["code"] = exc.code
+        record["reason"] = str(exc.reason)
+        record["url"] = exc.url
+    return record
+
+
+def _rebuild(record: dict) -> BaseException:
+    if "code" in record:
+        return urllib.error.HTTPError(record.get("url", ""), record["code"], record.get("reason", ""), {}, None)  # type: ignore[arg-type]
+    module, _, name = record["type"].rpartition(".")
+    try:
+        kind = getattr(importlib.import_module(module), name)
+        return kind(*record["args"])
+    except Exception:
+        return RuntimeError(f"{record['type']}: {' '.join(record['args'])}")
 
 
 class Cassette:
@@ -32,13 +63,21 @@ class Cassette:
         if self.mode == OFF:
             return call()
         key = self.key(name, args)
-        seq = self.entries.setdefault(key, []) if self.mode == RECORD else self.entries.get(key)
         if self.mode == REPLAY:
+            seq = self.entries.get(key)
             if not seq:
                 raise CassetteMiss(f"no recording for {name} {key}")
-            return seq.pop(0)
-        value = call()
-        seq.append(value)
+            entry = seq.pop(0)
+            if isinstance(entry, dict) and "__error__" in entry:
+                raise _rebuild(entry["__error__"])
+            return entry
+        seq = self.entries.setdefault(key, [])
+        try:
+            value = call()
+        except Exception as exc:
+            seq.append({"__error__": _capture(exc)})
+            raise
+        seq.append(_plain(value))
         return value
 
     def save(self) -> None:
