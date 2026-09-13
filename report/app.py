@@ -28,12 +28,11 @@ section { padding:64px 0 0 }
 section .eyebrow { margin-bottom:12px }
 section h2 { max-width:24ch }
 .lede { font-size:16px; color:var(--graphite); max-width:64ch; margin:16px 0 32px }
-.flow.glow::before { inset:-10px } .flow.glow:hover::before { opacity:.35 }
 .flow { border:1px solid var(--ash); border-radius:40px; padding:32px; background:var(--paper); overflow:hidden }
 .flow svg { width:100%; height:auto; display:block; font-family:var(--mono) }
 .node { fill:var(--parchment); stroke:var(--ash) } .node.hub { fill:var(--periwinkle); stroke:none } .node.gate { fill:var(--offblack); stroke:none }
 .node-t { font-size:13px; text-transform:uppercase; letter-spacing:-.3px; fill:var(--offblack) } .node-t.inv { fill:var(--parchment) }
-.node-s { font-size:11px; fill:var(--smoke) }
+.node-s { font-size:11px; fill:var(--smoke) } .node-s.inv { fill:var(--ash) }
 .wire { fill:none; stroke:var(--ash); stroke-width:1.2 }
 .flow-dot { fill:var(--lake) }
 .grid { display:grid; gap:12px } .grid.c2 { grid-template-columns:repeat(2,1fr) } .grid.c4 { grid-template-columns:repeat(4,1fr) }
@@ -71,24 +70,28 @@ ICONS = {
 
 
 def flow_svg() -> str:
-    apps = [("GitHub", "org · repos · deploy keys", 40), ("Slack", "account · channels", 110), ("Drive", "owned files · shares", 180), ("Sheets", "evidence log", 250)]
-    parts = []
-    for name, sub, y in apps:
-        parts.append(f"<rect class='node' x='20' y='{y}' width='190' height='50' rx='25'/>"
-                     f"<text class='node-t' x='40' y='{y+22}'>{name}</text><text class='node-s' x='40' y='{y+40}'>{sub}</text>"
-                     f"<path class='wire' d='M210 {y+25} C 290 {y+25}, 300 165, 360 165'/>")
-    chain = [("Resolve identity", "two signals or abstain", 360, "hub"), ("Inventory", "deterministic, paginated", 560, ""), ("Classify", "model proposes, policy decides", 760, ""),
-             ("Gate", "5 stages, every write", 960, "gate"), ("Report", "evidence + cited summary", 1160, "")]
-    for i, (name, sub, x, cls) in enumerate(chain):
-        parts.append(f"<rect class='node {cls}' x='{x}' y='140' width='180' height='50' rx='25'/>"
-                     f"<text class='node-t {'inv' if cls == 'gate' else ''}' x='{x+18}' y='162'>{name}</text>"
-                     f"<text class='node-s' x='{x+18}' y='180' fill='{'#cecac8' if cls == 'gate' else ''}'>{sub}</text>")
+    def node(x: int, y: int, w: int, title: str, sub: str, cls: str = "") -> str:
+        inv = " inv" if cls == "gate" else ""
+        return (f"<g class='node-g'><rect class='node {cls}' x='{x}' y='{y}' width='{w}' height='54' rx='27'/>"
+                f"<text class='node-t{inv}' x='{x+22}' y='{y+23}'>{title}</text><text class='node-s{inv}' x='{x+22}' y='{y+42}'>{sub}</text></g>")
+    apps = [("GitHub", "org · repos · deploy keys", 30), ("Slack", "account · channels", 105), ("Drive", "owned files · shares", 180), ("Sheets", "evidence log", 255)]
+    wires = [f"<path class='wire' d='M240 {y+27} C 320 {y+27}, 330 172, 390 172'/>" for _, _, y in apps]
+    nodes = [node(20, y, 220, name, sub) for name, sub, y in apps]
+    chain = [("Resolve identity", "two signals or abstain", "hub"), ("Inventory", "deterministic, paginated", ""), ("Classify", "model proposes, policy decides", ""),
+             ("Gate", "five stages, every write", "gate"), ("Report", "evidence + cited summary", "")]
+    w, gap = 250, 26
+    x = 390
+    for i, (name, sub, cls) in enumerate(chain):
+        nodes.append(node(x, 145, w, name, sub, cls))
         if i < len(chain) - 1:
-            parts.append(f"<path class='wire' d='M{x+180} 165 L {x+200} 165'/>")
-    path = "M40 65 C 290 65, 300 165, 360 165 L 1340 165"
-    parts.append(f"<circle class='flow-dot' r='5'><animateMotion dur='6s' repeatCount='indefinite' path='{path}'/></circle>")
-    parts.append("<text class='node-s' x='960' y='215'>precondition → diff → approval → apply → read-back</text>")
-    return "<svg viewBox='0 0 1360 320' role='img' aria-label='Offboard pipeline: four apps feed identity resolution, inventory, classification, the gate and the report'>" + "".join(parts) + "</svg>"
+            wires.append(f"<path class='wire' d='M{x+w} 172 L {x+w+gap} 172'/>")
+        x += w + gap
+    total = x - gap + 20
+    path = f"M240 57 C 320 57, 330 172, 390 172 L {x-gap} 172"
+    dot = f"<circle class='flow-dot' r='5'><animateMotion dur='7s' repeatCount='indefinite' path='{path}'/></circle>"
+    caption = f"<text class='node-s' x='{390 + 3*(w+gap)}' y='225'>precondition → diff → approval → apply → read-back</text>"
+    return (f"<svg viewBox='0 0 {total} 320' role='img' aria-label='Offboard pipeline: four apps feed identity resolution, inventory, classification, the gate and the report'>"
+            + "".join(wires) + "".join(nodes) + dot + caption + "</svg>")
 
 
 def landing_html(mode: str, model: str, scorecard: Optional[str]) -> str:
@@ -136,7 +139,7 @@ def landing_html(mode: str, model: str, scorecard: Optional[str]) -> str:
   <p class="eyebrow"><span class="dot"></span>How it works</p>
   <h2>Deterministic code enumerates. The model classifies. Policy decides. The gate writes.</h2>
   <p class="lede">Nothing the model says reaches an API directly. Enumeration is paginated code with a count check, so a dropped page is caught. Every disposition the model proposes is checked against rules that never read content from the apps. Every write is preconditioned, diffed, approved, applied and read back.</p>
-  <div class="flow glow">{flow_svg()}</div>
+  <div class="flow">{flow_svg()}</div>
   <div class="stages">{stage_html}</div>
 </section>
 
