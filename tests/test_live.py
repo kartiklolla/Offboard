@@ -22,14 +22,18 @@ class FakeGitHub(GitHubLive):
         super().__init__(token="t", org="acme-demo")
         self.routes = routes
         self.calls: list[str] = []
+        self.params: list[dict] = []
 
     def _http(self, method: str, path: str, body: Any = None, params: Any = None) -> Any:
         key = f"{method} {path}" + (f"?page={params['page']}" if params and "page" in params else "")
         self.calls.append(key)
+        self.params.append(dict(params or {}))
         answer = self.routes.get(key, self.routes.get(f"{method} {path}"))
         if isinstance(answer, Exception):
             raise answer
         if answer is None:
+            if "/contents/" in path or method == "DELETE":
+                return {"status": 404, "json": None, "link": ""}
             raise http_error(404)
         return {"status": 200, "json": answer.get("json"), "link": answer.get("link", "")}
 
@@ -51,6 +55,11 @@ class GitHubLivePlumbing(unittest.TestCase):
             "GET /orgs/acme-demo/repos?page=2": {"json": [{"full_name": "acme-demo/b", "description": None}], "link": ""},
         })
         self.assertEqual([r["full_name"] for r in gh.all_repos()], ["acme-demo/a", "acme-demo/b"])
+
+    def test_collaborators_are_direct_grants_only(self) -> None:
+        gh = FakeGitHub({"GET /repos/acme-demo/billing/collaborators": {"json": [{"login": "dmehta-demo", "role_name": "write"}]}})
+        gh.list_collaborators("acme-demo/billing")
+        self.assertEqual(gh.params[-1].get("affiliation"), "direct")
 
     def test_a_repo_without_workflows_returns_no_files_instead_of_crashing(self) -> None:
         gh = FakeGitHub({})

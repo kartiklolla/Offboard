@@ -50,6 +50,10 @@ The cause: the leaver is an *organization member*, so their repo access flows fr
 
 A naive agent reports "revoked 4 repos ✓" and the person still has access on Monday. This was observed on a real API, not a seeded twin (`traces/demo-live.jsonl`).
 
+| Before: `jagtenwine` on four repos, two of them by org membership alone | After the org-membership removal and its read-back |
+|---|---|
+| ![Before](docs/screenshots/before_github.png) | ![After](docs/screenshots/after_github.png) |
+
 ---
 
 ## 02 · External apps used
@@ -195,6 +199,14 @@ Read-only smoke on GitHub and Slack, then a full dry run — 47 calls, 0 writes,
 Then a real apply: **2 irreversible writes applied with passing read-backs**, the in-use deploy key escalated and never touched, evidence rows written to a real Google Sheet, and a summary posted to Slack. Plus the **F5 caught live** described in [section 01](#01--project-overview), and a Slack `restricted_action` refusal where the destructive call was **not retried** — the run stopped cleanly and the sandbox was verified byte-identical afterwards.
 
 Two live failure modes, two safe stops, zero damage.
+
+The summary the agent posted to Slack after the GitHub apply. Every sentence ends in the trace step it comes from; the escalation cites its disposition step, the completion sentence cites the last gate that passed its read-back:
+
+![Slack summary](docs/screenshots/slack_ss.png)
+
+The evidence log in Google Sheets, one row per gate step whatever its status. The two rows here are the refused Slack kick from two runs, one `failed_apply` and one held at `needs_approval`, which is exactly what an auditor wants to see written down:
+
+![Evidence log](docs/screenshots/sheets_ss.png)
 
 ### Seeing the results
 

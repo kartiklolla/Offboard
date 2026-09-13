@@ -215,7 +215,7 @@ class GitHubLive(GitHubDriver, DriverBase):
         except urllib.error.HTTPError as exc:
             if exc.code in (429, 500, 502, 503) or (exc.code == 403 and "rate limit" in exc.read().decode(errors="ignore").lower()):
                 raise TransientError(exc.code, exc.reason) from exc
-            if exc.code == 404 and method == "DELETE":
+            if exc.code == 404 and (method == "DELETE" or "/contents/" in path):
                 return LiveResponse(status=404, json=None, link="")
             raise
 
@@ -226,8 +226,8 @@ class GitHubLive(GitHubDriver, DriverBase):
             return self._http(method, path, body, params)
         return self._call(op, args, call)
 
-    def _page(self, op: str, args: dict, path: str, page: int, transform: Any) -> Page:
-        resp = self._api(op, {**args, "page": page}, "GET", path, params={"per_page": self.per_page, "page": page})
+    def _page(self, op: str, args: dict, path: str, page: int, transform: Any, query: Optional[dict] = None) -> Page:
+        resp = self._api(op, {**args, "page": page}, "GET", path, params={**(query or {}), "per_page": self.per_page, "page": page})
         items = [transform(x) for x in (resp["json"] or [])]
         has_next = 'rel="next"' in (resp["link"] or "")
         total = (page - 1) * self.per_page + len(items) if not has_next else (page * self.per_page) + 1
@@ -261,7 +261,8 @@ class GitHubLive(GitHubDriver, DriverBase):
 
     def list_collaborators(self, full_name: str, page: int = 1) -> Page:
         return self._page("list_collaborators", {"repo": full_name}, f"/repos/{full_name}/collaborators", page,
-                          lambda c: {"login": c["login"], "permission": c.get("role_name", "write")})
+                          lambda c: {"login": c["login"], "permission": c.get("role_name", "write")},
+                          query={"affiliation": "direct"})
 
     def list_deploy_keys(self, full_name: str, page: int = 1) -> Page:
         return self._page("list_deploy_keys", {"repo": full_name}, f"/repos/{full_name}/keys", page,
@@ -270,13 +271,10 @@ class GitHubLive(GitHubDriver, DriverBase):
 
     def get_workflow_files(self, full_name: str) -> dict[str, str]:
         import base64
-        try:
-            resp = self._api("get_workflow_files", {"repo": full_name}, "GET", f"/repos/{full_name}/contents/.github/workflows")
-        except urllib.error.HTTPError as exc:
-            if exc.code == 404:
-                return {}
-            raise
+        resp = self._api("get_workflow_files", {"repo": full_name}, "GET", f"/repos/{full_name}/contents/.github/workflows")
         files: dict[str, str] = {}
+        if resp["status"] == 404:
+            return files
         for entry in resp["json"] or []:
             if entry.get("type") != "file":
                 continue
