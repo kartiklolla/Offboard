@@ -27,6 +27,8 @@ CSS = THEME_CSS + """
 .card h3 { font-family:var(--mono); font-weight:500; font-size:12px; text-transform:uppercase; letter-spacing:-.033em; display:flex; justify-content:space-between; align-items:center; margin-bottom:10px }
 .card .row { display:flex; justify-content:space-between; gap:12px; font-size:13px; padding:6px 0; border-bottom:1px solid var(--ash-soft) } .card .row:last-child { border-bottom:none }
 tr.trap td:first-child { box-shadow:inset 3px 0 0 var(--offblack) }
+#inventory td:nth-child(2), #inventory td:nth-child(3), #inventory td:nth-child(4) { white-space:nowrap }
+#inventory td:first-child { overflow-wrap:anywhere; min-width:150px }
 .filters { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap }
 .filters button { border:1px solid var(--ash); background:var(--parchment); color:var(--graphite); padding:6px 14px; border-radius:9999px; font:inherit; font-size:12px; text-transform:uppercase; letter-spacing:-.033em; cursor:pointer }
 .filters button.on { background:var(--offblack); color:var(--parchment); border-color:var(--offblack) }
@@ -59,7 +61,8 @@ JS = r"""
 const $ = (s, el=document) => el.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const pill = (t, cls) => `<span class="tag ${esc(cls||t)}">${esc(t)}</span>`;
-const TRAPS = ['drive:folder:billing-runbooks','github:deploy_key:dmehta-laptop','slack:user:slack_account','drive:file:IT Offboarding Notes','slack:channel_member:#deploys','github:repo_collaborator:acme/legacy-billing'];
+const TRAP_RULES = ['R2','R3','R5','R9'];
+const isTrap = (r, ov, ij) => Boolean(ij) || Boolean(ov) || TRAP_RULES.includes(r.rule);
 let FILTER = 'all';
 
 function parseJsonl(text){ const out=[]; for (const line of text.split('\n')) { if (!line.trim()) continue; try { out.push(JSON.parse(line)); } catch(e) {} } return out; }
@@ -106,7 +109,7 @@ function render(steps){
   $('#filters').querySelectorAll('button').forEach(b=>b.onclick=()=>{FILTER=b.dataset.app; render(steps);});
   const rows = disps.filter(d=>FILTER==='all'||d.name.startsWith(FILTER+':')).map(d => { const r=d.result; const [app,kind_,...rest]=d.name.split(':'); const res=rest.join(':');
     const ov = ovs.find(f=>f.name==='override:'+d.name); const ij = inj.find(f=>f.args&&f.args.item_key===d.name);
-    return `<tr class="${TRAPS.includes(d.name)?'trap':''}" id="s${d.step}"><td class="mono">${esc(res)}</td><td><span class="dot ${esc(app)}"></span>${esc(app)}</td><td>${esc(kind_)}</td>
+    return `<tr class="${isTrap(r, ov, ij)?'trap':''}" id="s${d.step}"><td class="mono">${esc(res)}</td><td><span class="dot ${esc(app)}"></span>${esc(app)}</td><td>${esc(kind_)}</td>
       <td>${pill(r.disposition)}${r.transfer_to?` <span class="muted">→ ${esc(r.transfer_to)}</span>`:''}</td>
       <td>${r.rule?pill(r.rule,'rule'):''} <span class="muted">${esc(r.source)}</span>${ov?` ${pill(ov.failure_class)} <span class="muted">model said ${esc(ov.args.model_said ?? 'nothing')}</span>`:''}</td>
       <td>${ij?pill('injection','F7')+' <span class="muted">'+esc(ij.args.field)+'</span>':''}</td><td class="muted">${esc(r.reason)}</td></tr>`; }).join('');

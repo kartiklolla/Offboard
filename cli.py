@@ -89,14 +89,24 @@ def build(args: argparse.Namespace, dry_run: bool, approvals: set[str], strict: 
         drivers = build_drivers("live", tracer=tracer, cassette=cassette)
     gate = G.Gate(tracer, approvals, dry_run=dry_run, strict=strict, sleeper=time.sleep if args.mode == "live" else (lambda s: None))
     model = build_model(args.model)
+    apps = chosen_apps(args)
     config = RunConfig(
         target_email=args.user,
         hr=load_hr(args, drivers.state),
         manager_email=args.manager,
-        evidence_sheet_id=args.sheet if args.sheet != "none" else None,
+        evidence_sheet_id=args.sheet if args.sheet != "none" and "sheets" in apps else None,
         summary_channel=args.channel if args.channel != "none" else None,
+        apps=apps,
     )
     return tracer, drivers, gate, model, config, cassette
+
+
+def chosen_apps(args: argparse.Namespace) -> tuple[str, ...]:
+    if getattr(args, "apps", None):
+        return tuple(a.strip() for a in args.apps.split(",") if a.strip())
+    if args.mode == "live" and not os.environ.get("GOOGLE_REFRESH_TOKEN"):
+        return ("github", "slack")
+    return ("github", "slack", "drive", "sheets")
 
 
 def finish(tracer: Tracer, drivers: Drivers, cassette: Optional[Cassette], args: argparse.Namespace, quiet: bool = False) -> int:
@@ -269,6 +279,7 @@ def add_common(p: argparse.ArgumentParser, needs_user: bool = True) -> None:
     p.add_argument("--manager", help="override the manager who receives transferred files")
     p.add_argument("--sheet", default=os.environ.get("GOOGLE_SHEET_ID") or "SHEET_EVIDENCE", help="evidence sheet id, or 'none'")
     p.add_argument("--channel", default="it-offboarding", help="summary channel name, or 'none'")
+    p.add_argument("--apps", help="comma-separated subset of github,slack,drive,sheets; live mode drops drive and sheets when Google is not configured")
     p.add_argument("--trace", default="traces/run.jsonl")
     p.add_argument("--append", action="store_true", help="append to an existing trace file instead of starting fresh")
     p.add_argument("--save-state", help="twin mode: write the end state to this file (needed for undo)")
