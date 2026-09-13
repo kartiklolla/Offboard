@@ -4,11 +4,12 @@ import json
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
-from adapters.base import AccessItem, Identity
+from adapters.base import AccessItem, Identity, IncompleteRead
 from adapters.registry import Drivers
 from agent import policy as P
 from agent import tools
 from core import gate as G
+from core.budget import BudgetExceeded
 from core.trace import Tracer
 
 APPS = ("github", "slack", "drive")
@@ -118,7 +119,15 @@ def _inventory(config: RunConfig, drivers: Drivers, tracer: Tracer, state: RunSt
             if not identity.resolved:
                 tracer.event("inventory", app, result={"keys": [], "skipped": "identity not resolved"})
                 continue
-            items = drivers.by_app(app).inventory(identity, state.hr_record)
+            try:
+                items = drivers.by_app(app).inventory(identity, state.hr_record)
+            except (BudgetExceeded, IncompleteRead):
+                raise
+            except Exception as exc:
+                state.identities[app] = Identity(app, identity.principal_id, identity.display, identity.signals, NEEDS_HUMAN)
+                tracer.finding("F6", f"unavailable:{app}", args={"error": f"{type(exc).__name__}: {str(exc)[:300]}"}, note="app could not be read; nothing on it will be touched")
+                tracer.event("inventory", app, result={"keys": [], "skipped": "app unavailable"})
+                continue
             state.items.extend(items)
             tracer.event("inventory", app, result={"keys": [i.key for i in items]})
         tracer.event("inventory", "all", result={"keys": [i.key for i in state.items], "count": len(state.items)})

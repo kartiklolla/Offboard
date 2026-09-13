@@ -169,6 +169,22 @@ class Capabilities(unittest.TestCase):
         self.assertEqual(steps[-1]["name"], "clean")
 
 
+class Unavailable(unittest.TestCase):
+    def test_broken_app_is_skipped_not_fatal(self) -> None:
+        from adapters import gdrive
+        original = gdrive.DriveTwin.all_files
+        gdrive.DriveTwin.all_files = lambda self: (_ for _ in ()).throw(RuntimeError("Drive API disabled"))
+        try:
+            steps, state, _ = run()
+        finally:
+            gdrive.DriveTwin.all_files = original
+        ids = {s["name"]: s["result"] for s in by_kind(steps, "identity")}
+        self.assertTrue(any(s["name"] == "unavailable:drive" for s in by_kind(steps, "finding")))
+        self.assertFalse(state.has_access("dhruv@acme.dev", "acme/billing"))
+        self.assertTrue(state.has_access("dhruv@acme.dev", "billing-runbooks"))
+        self.assertEqual(steps[-1]["name"], "needs_human")
+
+
 class Faults(unittest.TestCase):
     def test_http_500_mid_plan_marks_dirty_and_stops(self) -> None:
         steps, state, gate = run(faults=[{"op": "remove_permission", "mode": "http_500", "on_call": 2}])
