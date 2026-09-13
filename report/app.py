@@ -28,15 +28,18 @@ section { padding:64px 0 0 }
 section .eyebrow { margin-bottom:12px }
 section h2 { max-width:24ch }
 .lede { font-size:16px; color:var(--graphite); max-width:64ch; margin:16px 0 32px }
-.flow { border:1px solid var(--ash); border-radius:40px; padding:32px; background:var(--paper); overflow:hidden }
+.flow { border:1px solid var(--ash); border-radius:40px; padding:32px 32px 16px; background:var(--paper); overflow:hidden }
 .flow svg { width:100%; height:auto; display:block; font-family:var(--mono) }
 .node { fill:var(--parchment); stroke:var(--ash) } .node.hub { fill:var(--periwinkle); stroke:none } .node.gate { fill:var(--offblack); stroke:none }
-.node-t { font-size:18px; text-transform:uppercase; letter-spacing:-.4px; fill:var(--offblack) } .node-t.inv { fill:var(--parchment) }
-.node-s { font-size:13px; fill:var(--graphite) } .node-s.inv { fill:var(--ash) }
-.node-g rect { transition:fill .4s ease, filter .4s ease, stroke .4s ease }
-.node-g.lit rect { fill:var(--periwinkle); stroke:transparent; filter:drop-shadow(-10px 0 18px var(--g1, var(--coral))) drop-shadow(10px 0 18px var(--g2, var(--sky))) }
-.node-g.lit rect.hub { fill:var(--sky) } .node-g.lit rect.gate { fill:var(--offblack); filter:drop-shadow(0 0 22px var(--gold)) }
+.node-t { font-size:17px; text-transform:uppercase; letter-spacing:-.4px; fill:var(--offblack) } .node-t.inv { fill:var(--parchment) }
+.node-c { font-size:14px; fill:var(--graphite); opacity:0; transition:opacity .4s ease }
+.node-g rect, .node-g circle.node { transition:fill .4s ease, filter .4s ease, stroke .4s ease }
+.node-g.lit .node-c { opacity:1 }
+.node-g.lit rect.node { fill:var(--c); stroke:transparent; filter:drop-shadow(0 0 18px var(--c)) }
+.node-g.lit rect.node.gate { fill:var(--offblack); filter:drop-shadow(0 0 22px var(--c)) }
+.node-g.lit circle.node { stroke:var(--c); stroke-width:2; filter:drop-shadow(0 0 16px var(--c)) }
 .node-g.lit .node-t { font-weight:500 }
+.node-g:hover rect.node, .node-g:hover circle.node { filter:drop-shadow(0 0 14px var(--c)) }
 .wire { fill:none; stroke:var(--ash); stroke-width:1.2 }
 .flow-dot { fill:var(--lake); opacity:.9 }
 .grid { display:grid; gap:12px } .grid.c2 { grid-template-columns:repeat(2,1fr) } .grid.c4 { grid-template-columns:repeat(4,1fr) }
@@ -65,43 +68,44 @@ footer { margin-top:96px; border-top:1px solid var(--ash); padding-top:24px; dis
 @media (max-width:900px) { .hero h1 { font-size:44px } .hero p { font-size:16px } .grid.c2, .grid.c4 { grid-template-columns:1fr } .stages { grid-template-columns:1fr } .person { grid-template-columns:1fr; gap:6px } .hero .wash { display:none } }
 """
 
-ICONS = {
-    "github": "<svg viewBox='0 0 24 24'><circle cx='6' cy='5' r='2.5'/><circle cx='6' cy='19' r='2.5'/><circle cx='18' cy='8' r='2.5'/><path d='M6 7.5v9M18 10.5c0 4-4 4-8 5.5'/></svg>",
-    "slack": "<svg viewBox='0 0 24 24'><path d='M9 3v18M15 3v18M3 9h18M3 15h18'/></svg>",
-    "drive": "<svg viewBox='0 0 24 24'><path d='M3 8.5A1.5 1.5 0 0 1 4.5 7H9l2 2h8.5A1.5 1.5 0 0 1 21 10.5v7A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5z'/></svg>",
-    "sheets": "<svg viewBox='0 0 24 24'><rect x='4' y='4' width='16' height='16' rx='2'/><path d='M4 10h16M4 15h16M10 4v16'/></svg>",
+MARKS = {
+    "github": "<g><circle cx='12' cy='12' r='11' fill='#24292f'/><path d='M12 5.5a6.5 6.5 0 0 0-2.06 12.67c.33.06.45-.14.45-.31v-1.1c-1.81.39-2.19-.87-2.19-.87-.3-.75-.72-.95-.72-.95-.59-.4.04-.4.04-.4.65.05 1 .67 1 .67.58 1 1.52.71 1.89.54.06-.42.23-.71.41-.87-1.44-.16-2.96-.72-2.96-3.21 0-.71.25-1.29.67-1.74-.07-.17-.29-.83.06-1.72 0 0 .55-.17 1.79.66a6.2 6.2 0 0 1 3.26 0c1.24-.83 1.79-.66 1.79-.66.35.89.13 1.55.06 1.72.42.45.67 1.03.67 1.74 0 2.5-1.52 3.05-2.97 3.21.23.2.44.6.44 1.2v1.79c0 .17.12.38.45.31A6.5 6.5 0 0 0 12 5.5z' fill='#fff'/></g>",
+    "slack": "<g><rect x='2' y='2' width='20' height='20' rx='6' fill='#fff' stroke='#cecac8'/><rect x='6' y='10.5' width='7' height='3' rx='1.5' fill='#E01E5A'/><rect x='10.5' y='6' width='3' height='7' rx='1.5' fill='#36C5F0'/><rect x='11' y='10.5' width='7' height='3' rx='1.5' fill='#ECB22E'/><rect x='10.5' y='11' width='3' height='7' rx='1.5' fill='#2EB67D'/></g>",
+    "drive": "<g><rect x='2' y='2' width='20' height='20' rx='6' fill='#fff' stroke='#cecac8'/><path d='M9.2 5.5h5.6L20.5 15h-5.6z' fill='#FBBC04'/><path d='M9.2 5.5 3.5 15l2.8 4.5 5.7-9.5z' fill='#34A853'/><path d='M6.3 19.5 9.1 15h11.4l-2.8 4.5z' fill='#4285F4'/></g>",
+    "sheets": "<g><rect x='4' y='2' width='16' height='20' rx='3' fill='#34A853'/><rect x='7' y='10' width='10' height='8' rx='1' fill='#fff'/><path d='M7 13h10M7 16h10M12 10v8' stroke='#34A853' stroke-width='1'/></g>",
 }
+APP_COLOUR = {"github": "#8b949e", "slack": "#36C5F0", "drive": "#34A853", "sheets": "#34A853"}
+ICONS = {k: f"<svg viewBox='0 0 24 24'>{v}</svg>" for k, v in MARKS.items()}
 
 
-APP_NODES = [("github", "GitHub", "org · repos · deploy keys"), ("slack", "Slack", "account · channels"), ("drive", "Drive", "owned files · shares"), ("sheets", "Sheets", "evidence log")]
-CHAIN_NODES = [("resolve", "Resolve identity", "two signals or abstain", "hub"), ("inventory", "Inventory", "deterministic, paginated", ""),
-               ("classify", "Classify", "model proposes, policy decides", ""), ("gate", "Gate", "five stages, every write", "gate"), ("report", "Report", "evidence + cited summary", "")]
+APP_NODES = [("github", "GitHub"), ("slack", "Slack"), ("drive", "Drive"), ("sheets", "Sheets")]
+CHAIN_NODES = [("resolve", "Resolve identity", "two independent signals, or abstain", "hub"), ("inventory", "Inventory", "deterministic, paginated, count-checked", ""),
+               ("classify", "Classify", "the model proposes, policy decides", ""), ("gate", "Gate", "precondition · diff · approval · apply · read-back", "gate"),
+               ("report", "Report", "evidence rows and a cited summary", "")]
 
 
 def flow_svg() -> str:
-    aw, ah, ay = 290, 68, 24
-    cw, ch, cy, gap = 280, 68, 300, 12
-    app_x = [70 + i * 340 for i in range(4)]
-    chain_x = [20 + i * (cw + gap) for i in range(5)]
-    rx0 = chain_x[0] + cw / 2
+    cy, r, step = 96, 30, 82
+    icon_x = [50 + i * step for i in range(4)]
+    bus_y = cy + r + 26
+    cw, ch, gap = 196, 62, 16
+    x0 = icon_x[-1] + r + 70
+    chain_x = [x0 + i * (cw + gap) for i in range(5)]
     parts = []
-    for (key, _, _), x in zip(APP_NODES, app_x):
-        cx = x + aw / 2
-        parts.append(f"<path id='route-{key}' class='wire' d='M{cx} {ay+ah} C {cx} {ay+ah+110}, {rx0} {cy-120}, {rx0} {cy}'/>")
-    parts.append(f"<path id='route-chain' class='wire' d='M{chain_x[0]+cw} {cy+ch/2} L {chain_x[-1]} {cy+ch/2}'/>")
-    parts.append("<circle id='flow-dot' class='flow-dot' r='7' cx='-20' cy='-20'/>")
-
-    def node(x: float, y: float, w: float, h: float, key: str, title: str, sub: str, cls: str = "") -> str:
-        inv = " inv" if cls == "gate" else ""
-        return (f"<g class='node-g' data-node='{key}'><rect class='node {cls}' x='{x}' y='{y}' width='{w}' height='{h}' rx='{h/2}'/>"
-                f"<text class='node-t{inv}' x='{x+26}' y='{y+29}'>{title}</text><text class='node-s{inv}' x='{x+26}' y='{y+51}'>{sub}</text></g>")
-
-    for (key, title, sub), x in zip(APP_NODES, app_x):
-        parts.append(node(x, ay, aw, ah, key, title, sub))
+    for (key, _), cx in zip(APP_NODES, icon_x):
+        parts.append(f"<path id='route-{key}' class='wire' d='M{cx} {cy+r} L {cx} {bus_y-14} Q {cx} {bus_y} {cx+14} {bus_y} L {x0-30} {bus_y} Q {x0-14} {bus_y} {x0-14} {bus_y-14} L {x0-14} {cy} L {x0} {cy}'/>")
+    parts.append(f"<path id='route-chain' class='wire' d='M{chain_x[0]+cw} {cy} L {chain_x[-1]} {cy}'/>")
+    parts.append("<circle id='flow-dot' class='flow-dot' r='6' cx='-20' cy='-20'/>")
+    for (key, title), cx in zip(APP_NODES, icon_x):
+        parts.append(f"<g class='node-g icon' data-node='{key}' style='--c:{APP_COLOUR[key]}'><title>{title}</title><circle class='node' cx='{cx}' cy='{cy}' r='{r}'/>"
+                     f"<g transform='translate({cx-17} {cy-17}) scale(1.42)'>{MARKS[key]}</g></g>")
+    colours = {"resolve": "var(--sky)", "inventory": "var(--mint)", "classify": "var(--gold)", "gate": "var(--periwinkle)", "report": "var(--coral)"}
     for (key, title, sub, cls), x in zip(CHAIN_NODES, chain_x):
-        parts.append(node(x, cy, cw, ch, key, title, sub, cls))
-    parts.append(f"<text class='node-s' x='{chain_x[3]}' y='{cy+ch+34}'>precondition → diff → approval → apply → read-back</text>")
-    return f"<svg id='flow' viewBox='0 0 {chain_x[-1]+cw+20} 420' role='img' aria-label='Offboard pipeline: four apps feed identity resolution, inventory, classification, the gate and the report'>" + "".join(parts) + "</svg>"
+        inv = " inv" if cls == "gate" else ""
+        parts.append(f"<g class='node-g' data-node='{key}' style='--c:{colours[key]}'><rect class='node {cls}' x='{x}' y='{cy-ch/2}' width='{cw}' height='{ch}' rx='{ch/2}'/>"
+                     f"<text class='node-t{inv}' x='{x+cw/2}' y='{cy+6}' text-anchor='middle'>{title}</text>"
+                     f"<text class='node-c' x='{x+cw/2}' y='{cy+ch/2+34}' text-anchor='middle'>{sub}</text></g>")
+    return f"<svg id='flow' viewBox='0 0 {chain_x[-1]+cw+90} 200' role='img' aria-label='Offboard pipeline: GitHub, Slack, Drive and Sheets feed identity resolution, inventory, classification, the gate and the report'>" + "".join(parts) + "</svg>"
 
 
 FLOW_JS = """
@@ -119,7 +123,7 @@ FLOW_JS = """
   const ease = t => t < .5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2) / 2;
   function travel(path, from, to, ms) { return new Promise(res => { const t0 = performance.now(); function f(now) { const k = Math.min(1, (now - t0) / ms); at(path, from + (to - from) * ease(k)); if (k < 1) requestAnimationFrame(f); else res(); } requestAnimationFrame(f); }); }
   const wait = ms => new Promise(r => setTimeout(r, ms));
-  function nodeCenterT(key) { const r = nodes[key].querySelector('rect'); const cx = +r.getAttribute('x') + (+r.getAttribute('width')) / 2; const L = chainPath.getTotalLength(); const x0 = chainPath.getPointAtLength(0).x; const x1 = chainPath.getPointAtLength(L).x; return Math.max(0, Math.min(1, (cx - x0) / (x1 - x0))); }
+  function nodeCenterT(key) { const r = nodes[key].querySelector('rect.node'); const cx = +r.getAttribute('x') + (+r.getAttribute('width')) / 2; const L = chainPath.getTotalLength(); const x0 = chainPath.getPointAtLength(0).x; const x1 = chainPath.getPointAtLength(L).x; return Math.max(0, Math.min(1, (cx - x0) / (x1 - x0))); }
   async function cycle() {
     let app = apps[Math.floor(Math.random() * apps.length)]; if (app === last) app = apps[(apps.indexOf(app) + 1) % apps.length]; last = app;
     const route = svg.querySelector('#route-' + app);

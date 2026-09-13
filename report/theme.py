@@ -52,19 +52,17 @@ tr:last-child td { border-bottom:none }
 @keyframes pulse { 0%,100% { opacity:1 } 50% { opacity:.3 } }
 @media (prefers-reduced-motion: reduce) { .pulse, .flow-dot { animation:none } }
 .wash { position:absolute; inset:auto; filter:blur(70px); opacity:.8; border-radius:50%; pointer-events:none }
-.glow { position:relative; --g1:var(--coral); --g2:var(--sky); transition:box-shadow .35s ease, border-color .35s ease, transform .35s ease }
-.glow:hover, .glow:focus-within { border-color:transparent; box-shadow:-22px 0 56px -14px var(--g1), 22px 0 56px -14px var(--g2), 0 18px 48px -18px var(--g2) }
-.glow::after { content:""; position:absolute; inset:0; border-radius:inherit; background:linear-gradient(120deg, var(--g1), transparent 45%, transparent 55%, var(--g2)); opacity:0; transition:opacity .35s ease; pointer-events:none }
-.glow:hover::after, .glow:focus-within::after { opacity:.22 }
-.glow:nth-child(4n+2) { --g1:var(--sky); --g2:var(--mint) } .glow:nth-child(4n+3) { --g1:var(--gold); --g2:var(--coral) } .glow:nth-child(4n) { --g1:var(--mint); --g2:var(--periwinkle) }
-.node-g { cursor:default } .node-g rect { transition:filter .35s ease } .node-g:hover rect { filter:drop-shadow(-8px 0 16px var(--g1, var(--coral))) drop-shadow(8px 0 16px var(--g2, var(--sky))) }
-.node-g:nth-of-type(4n+2) { --g1:var(--sky); --g2:var(--mint) } .node-g:nth-of-type(4n+3) { --g1:var(--gold); --g2:var(--coral) } .node-g:nth-of-type(4n) { --g1:var(--mint); --g2:var(--periwinkle) }
+.glow { position:relative; --g:var(--sky); transition:box-shadow .35s ease, border-color .35s ease }
+.glow:hover, .glow:focus-within { border-color:transparent; box-shadow:0 0 0 1px var(--g), 0 14px 48px -16px var(--g), -16px 0 40px -18px var(--g), 16px 0 40px -18px var(--g) }
+.glow::after { content:""; position:absolute; inset:0; border-radius:inherit; background:var(--g); opacity:0; transition:opacity .35s ease; pointer-events:none }
+.glow:hover::after, .glow:focus-within::after { opacity:.14 }
+.glow:nth-child(4n+1) { --g:var(--sky) } .glow:nth-child(4n+2) { --g:var(--mint) } .glow:nth-child(4n+3) { --g:var(--gold) } .glow:nth-child(4n) { --g:var(--coral) }
 .dot { display:inline-block; width:8px; height:8px; border-radius:50%; vertical-align:middle; margin-right:8px; background:var(--ash) }
 .dot.github { background:var(--coral) } .dot.slack { background:var(--sky) } .dot.drive { background:var(--mint) } .dot.sheets { background:var(--gold) } .dot.model { background:var(--periwinkle) }
 .eyebrow .dot { width:6px; height:6px; margin-right:10px; background:linear-gradient(120deg, var(--coral), var(--sky)) }
 .eyebrow:nth-of-type(2n) .dot { background:linear-gradient(120deg, var(--sky), var(--mint)) }
 td, .card, .stat, .finding, .summary p, .gate .body > div { min-width:0; overflow-wrap:anywhere }
 .tag.wrap { white-space:normal; text-align:left; border-radius:16px }
-@media (prefers-reduced-motion: reduce) { .glow, .glow::after, .node-g rect { transition:none } }
+@media (prefers-reduced-motion: reduce) { .glow, .glow::after, .node-g rect, .node-g circle, .node-c { transition:none } }
 @media (max-width:820px) { .wrap { padding:0 20px 64px } h1 { font-size:36px } h2 { font-size:28px } .nav .links { display:none } }
 """
