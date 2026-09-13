@@ -247,3 +247,13 @@ Report: every sentence ends `[sN]`, N in this trace; completion verbs require a 
 | `channel_member` | revoke | `revoke:#deploys` | `kick_from_channel` | `invite_to_channel` |
 | `user` | revoke | `revoke:slack_account` | `deactivate_user` | `reactivate_user`, supported false on non-Enterprise |
 | any | escalate / needs_human | none | | |
+
+## Addendum, 13 Sep: the Run Console (demo UI)
+
+CLAUDE.md says no web UI; this stays inside that rule's intent. `report/console.py` reads one trace JSONL and writes `console.html`, a second generated static page next to the scorecard. Optional `--serve PORT` starts a stdlib `http.server` that serves the same page plus the raw JSONL; the page polls every 500 ms so a live `offboard run` can be watched step by step. No framework, no CDN, no backend state, no buttons that write.
+
+Sections, each a query over the trace: header (target, mode, model, `run_status` pill, counts, cost); pipeline strip of the six phases; identity cards per app with signals and model-vs-policy badge; inventory and disposition table with rule badges, injection flags and the four traps highlighted; execution timeline of gate cards expanding to the five stages with nested tool calls and undo records; findings rail; summary with `[sN]` links and struck-through dropped sentences; undo list.
+
+Demo flow: console serving, `offboard plan` fills the table, edit `plan.json`, `offboard apply` makes gate cards appear live, then cut to the scorecard.
+
+Owner: Track A builds `report/console.py` (claimed in REQUESTS.md); Track B's scorecard is unchanged and linked from the console. Order: A7 CLI, then console static, then `--serve`, then HANDOFF. If tokens run short it moves to the start of the next session, before live work.

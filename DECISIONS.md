@@ -20,6 +20,7 @@ One line per decision: the option chosen and one sentence why. Both Claude sessi
 | D12 | Regression story | whatever fails at baseline; commit before fixing | | |
 | D13 | Upgrade set | U1 U2 U3 U5 U6, then U7 U8, U4 if P3 | | |
 | D14 | Track A / Track B | | | |
+| D15 | Demo UI | static console page from the trace + optional stdlib poller; no framework, no write buttons | | Kartik, 13 Sep |
 
 ## Track A decisions
 

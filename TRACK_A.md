@@ -90,3 +90,7 @@ For irreversible ops, a second independent read where one exists; both must agre
 ## Things not to do
 
 Retry a failed destructive apply. Let the model see unfenced content. Skip the postcondition on reversible writes. Edit `adapters/` or `twins/` yourself. Fix anything before the baseline is committed.
+
+### A10 Run Console (`report/console.py`), added 13 Sep
+
+Static page from one trace: `python -m report.console --trace traces/demo.jsonl --out console.html`. Live: `--serve 8765` polls the JSONL. Sections and demo flow in PLAN.md addendum. Same visual tokens as the scorecard. Zero libraries. Build after A7/A8.
