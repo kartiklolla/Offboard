@@ -10,7 +10,7 @@ demo:
 	python3 cli.py run --user dhruv@acme.dev --mode live --dry-run
 
 scorecard:
-	python3 -m report.scorecard --results evals/results/final.json --baseline evals/results/baseline.json --mutants evals/results/mutants.json --trace traces/demo.jsonl --compare traces/evals/compare-heuristic/h1_full_run.jsonl traces/evals/compare-gullible/h1_full_run.jsonl traces/evals/compare-anthropic/h1_full_run.jsonl --out scorecard.html
+	python3 -m report.scorecard --results evals/results/final.json --baseline evals/results/baseline.json --mutants evals/results/mutants.json --trace traces/live-dry.jsonl traces/demo.jsonl --compare traces/evals/compare-heuristic/h1_full_run.jsonl traces/evals/compare-gullible/h1_full_run.jsonl traces/evals/compare-anthropic/h1_full_run.jsonl --out scorecard.html
 
 report:
 	python3 -m evals.runner --matrix --label final

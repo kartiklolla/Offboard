@@ -37,7 +37,7 @@
 
 ## Limitation
 
-Slack deactivation through the API needs Enterprise Grid. On a standard workspace the agent escalates it with an undo record that says the API cannot do it, and a human deactivates by hand. Every number above comes from runs against deterministic twins of the four apps; the live GitHub and Slack drivers exist but were not exercised against real sandboxes in this build.
+Slack deactivation through the API needs Enterprise Grid. On a standard workspace the agent escalates it with an undo record that says the API cannot do it, and a human deactivates by hand. Every scenario, matrix cell and mutant above ran against deterministic twins of the four apps. The live GitHub and Slack drivers were exercised against a seeded sandbox org and workspace read-only: a smoke test and a full dry run that resolved both identities on two signals, found both traps, logged both injections, produced every diff and applied nothing. Drive and Sheets stayed on twins.
 
 ## What a production-mirror sandbox would replace
 

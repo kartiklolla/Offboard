@@ -86,7 +86,7 @@ class Scorecard(unittest.TestCase):
 
     def test_every_section_is_present(self) -> None:
         for title in ("Pass rate by failure class", "Every scenario, and what it asserted", "Fault matrix",
-                      "The demo run, step by step", "The same run under three models", "Cost and budget",
+                      "step by step", "The same run under three models", "Cost and budget",
                       "What this does not do"):
             self.assertIn(title, self.html)
 

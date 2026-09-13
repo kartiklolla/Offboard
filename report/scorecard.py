@@ -142,8 +142,11 @@ def header(results: dict, baseline: Optional[dict], demo: Optional[Trace], mutan
     if mutants:
         stats.append(("mutants caught", f"{mutants['totals']['caught']}/{mutants['totals']['mutants']}"))
     if demo:
+        reads = sum(1 for s in demo.steps if s["kind"] == "tool_call" and s.get("risk") == "read")
         writes = sum(1 for s in demo.steps if s["kind"] == "tool_call" and s.get("risk") != "read")
-        stats.append(("writes in the demo", writes))
+        live = demo.steps and demo.steps[0].get("mode") == "live"
+        stats.append(("live reads" if live else "reads in the demo", reads))
+        stats.append(("live writes" if live else "writes in the demo", writes))
     cards = "".join(f'<div class="stat"><span class="n">{esc(v)}</span><span class="k">{esc(k)}</span></div>'
                     for k, v in stats)
     return f'<div class="headline">{cards}</div>'
@@ -409,6 +412,16 @@ def _finding_gist(step: dict) -> str:
     return gist if len(gist) <= 120 else gist[:117] + "..."
 
 
+def _demo_title(demo: Optional[Trace]) -> str:
+    if not demo or not demo.steps:
+        return "The demo run, step by step"
+    mode = demo.steps[0].get("mode", "twin")
+    dry = any(s["kind"] == "run_status" and s["name"] == "dry_run" for s in demo.steps)
+    if mode == "live":
+        return "A live " + ("dry run" if dry else "run") + " against the sandbox, step by step"
+    return "The demo run on twins, step by step"
+
+
 def trace_explorer(demo: Optional[Trace]) -> str:
     if not demo or not demo.steps:
         return '<p class="muted">No demo trace was supplied. Pass one with <code>--trace</code>.</p>'
@@ -439,7 +452,7 @@ def render(results: dict, baseline: Optional[dict], demo: Optional[Trace],
         ("Every scenario, and what it asserted", scenario_rows(results, baseline)),
         ("Fault matrix", matrix_grid(results)),
         ("Would the suite notice a regression?", mutation_grid(mutants)),
-        ("The demo run, step by step", trace_explorer(demo)),
+        (_demo_title(demo), trace_explorer(demo)),
         ("The same run under three models", model_panel(compare)),
         ("Cost and budget", cost_panel(demo, results)),
         ("What this does not do", limitation_box(limitation)),
@@ -469,7 +482,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(prog="report.scorecard")
     parser.add_argument("--results", default=os.path.join(ROOT, "evals", "results", "final.json"))
     parser.add_argument("--baseline")
-    parser.add_argument("--trace")
+    parser.add_argument("--trace", nargs="*", default=[], help="demo trace; the first path that exists is used")
     parser.add_argument("--compare", nargs="*", default=[])
     parser.add_argument("--mutants")
     parser.add_argument("--decisions", default=os.path.join(ROOT, "DECISIONS.md"))
@@ -481,7 +494,8 @@ def main(argv: Optional[list[str]] = None) -> int:
         return 2
     results = load_results(args.results)
     baseline = load_results(args.baseline) if args.baseline and os.path.exists(args.baseline) else None
-    demo = Trace("demo", args.trace, load_trace(args.trace)) if args.trace and os.path.exists(args.trace) else None
+    demo_path = next((p for p in args.trace if os.path.exists(p)), None)
+    demo = Trace("demo", demo_path, load_trace(demo_path)) if demo_path else None
     compare = [Trace(_model_label(path), path, load_trace(path)) for path in args.compare if os.path.exists(path)]
 
     mutants = load_results(args.mutants) if args.mutants and os.path.exists(args.mutants) else None
