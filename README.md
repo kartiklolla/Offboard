@@ -9,7 +9,7 @@ The interesting part is not the agent. It is the write gate every change passes 
 Python 3.11+, standard library only for everything below.
 
 ```bash
-python3 -m unittest discover -s tests            # 122 tests
+python3 -m unittest discover -s tests            # 127 tests
 python3 -m evals.runner --mode twin --matrix     # 28 scenarios + fault matrix, per-class pass rate
 python3 cli.py run --user dhruv@acme.dev --dry-run
 ```
@@ -84,6 +84,8 @@ Scenarios can swap in a deliberately bad model, `--model gullible`, which follow
 
 `evals/matrix.py` generates one more scenario per (write operation × fault mode) and asserts only the invariants.
 
+`evals/mutants.py` answers the question a green board cannot: would the suite notice a defence being lost? It removes one defence from the running agent at a time (one identity signal is enough, owned files revoked in place, a 200 is the truth, content is instruction, and so on), runs every scenario, and records which class caught it. Eleven mutants, eleven caught: `python3 -m evals.mutants`.
+
 ## Layout
 
 ```
@@ -91,10 +93,11 @@ core/       trace.py (the only observability surface), budget.py, replay.py (cas
 adapters/   base.py (AccessItem, RISK map, paginated collect), github.py slack.py gdrive.py gsheets.py (twin + live), registry.py
 twins/      state.py, faults.py (http_500, rate_limit_429, silent_noop, stale_read, partial_page), driver.py, fixtures/acme.json
 agent/      prompts.py, model.py, policy.py, tools.py, loop.py
-evals/      taxonomy.py, schema.py, runner.py, matrix.py, scenarios/, results/
+evals/      taxonomy.py, schema.py, runner.py, matrix.py, mutants.py, scenarios/, results/
 report/     scorecard.py (per-class board), console.py (one run, static or live)
 cli.py      run · plan · apply · undo
-tests/      unittest, 122 tests
+tests/      unittest, 127 tests
+BRIEF.md    one-page reliability brief · VIDEO.md  two-minute demo script
 ```
 
 Twin and live drivers implement the same interface and are selected by `--mode`. The twins are small, deterministic and fault-injecting; they are a test rig, not a production mirror, and a sandbox vendor's twins would slot in behind the same `Driver` protocol.
