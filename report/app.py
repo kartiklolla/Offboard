@@ -28,6 +28,7 @@ section { padding:64px 0 0 }
 section .eyebrow { margin-bottom:12px }
 section h2 { max-width:24ch }
 .lede { font-size:16px; color:var(--graphite); max-width:64ch; margin:16px 0 32px }
+.flow.glow::before { inset:-10px } .flow.glow:hover::before { opacity:.35 }
 .flow { border:1px solid var(--ash); border-radius:40px; padding:32px; background:var(--paper); overflow:hidden }
 .flow svg { width:100%; height:auto; display:block; font-family:var(--mono) }
 .node { fill:var(--parchment); stroke:var(--ash) } .node.hub { fill:var(--periwinkle); stroke:none } .node.gate { fill:var(--offblack); stroke:none }
@@ -43,15 +44,16 @@ section h2 { max-width:24ch }
 .stage { border:1px solid var(--ash); border-radius:9999px; padding:14px 18px; background:var(--parchment) }
 .stage b { display:block; font-weight:500; text-transform:uppercase; font-size:12px; letter-spacing:-.033em } .stage span { color:var(--graphite); font-size:12.5px }
 .trap h3 { font-size:22px; margin-bottom:10px } .trap p { margin:0; color:var(--graphite); font-size:13.5px } .trap .tag { margin-top:14px }
+.people.glow { --g1:var(--periwinkle); --g2:var(--mint) }
 .people { display:flex; flex-direction:column; border:1px solid var(--ash); border-radius:24px; background:var(--paper); overflow:hidden }
-.person { display:grid; grid-template-columns:2fr 2fr 1fr auto; gap:16px; align-items:center; padding:16px 24px; border-bottom:1px solid var(--ash-soft) } .person:last-child { border-bottom:none }
+.person { display:grid; grid-template-columns:minmax(0,2fr) minmax(0,2fr) minmax(0,1fr) auto; gap:16px; align-items:center; padding:16px 24px; border-bottom:1px solid var(--ash-soft) } .person:last-child { border-bottom:none }
 .person .name { font-family:var(--serif); font-size:20px } .person .meta { color:var(--graphite); font-size:13px }
 .person.leaving { background:var(--parchment) }
 #plan { margin-top:24px; display:none } #plan.on { display:block }
 #plan h3 { margin-bottom:6px } #plan .sub { color:var(--graphite); font-size:13px; margin:0 0 20px }
 .write { display:grid; grid-template-columns:auto 1fr auto; gap:14px; align-items:center; padding:10px 0; border-bottom:1px solid rgba(36,36,36,.12) } .write:last-child { border-bottom:none }
 .write input { width:18px; height:18px; accent-color:var(--offblack) }
-.write .d { font-size:13px } .write .d small { display:block; color:var(--graphite); font-size:12px; margin-top:2px }
+.write .d { font-size:13px; min-width:0; overflow-wrap:anywhere } .write .d small { display:block; color:var(--graphite); font-size:12px; margin-top:2px }
 .write.off .d { text-decoration:line-through; color:var(--smoke) }
 .esc { display:flex; flex-wrap:wrap; gap:8px; margin:14px 0 22px }
 .apply { display:flex; align-items:center; gap:16px; margin-top:24px; flex-wrap:wrap } .apply .note { font-size:12.5px; color:var(--graphite) }
@@ -98,7 +100,7 @@ def landing_html(mode: str, model: str, scorecard: Optional[str]) -> str:
         ("sheets", "Google Sheets", ["The evidence log: one row per gated write with status, diff and undo record.", "Written through the same gate as everything else.", "This is what the auditor asks for."]),
     ]
     app_cards = "".join(
-        f"<div class='card lg app'><h3>{ICONS[k]}{n}</h3><ul class='steps'>"
+        f"<div class='card lg app glow'><h3><span class='dot {k}'></span>{ICONS[k]}{n}</h3><ul class='steps'>"
         f"<li><b>Read</b><span>{a}</span></li><li><b>Decide</b><span>{b}</span></li><li><b>Write</b><span>{c}</span></li></ul></div>"
         for k, n, (a, b, c) in apps
     )
@@ -108,11 +110,11 @@ def landing_html(mode: str, model: str, scorecard: Optional[str]) -> str:
         ("Identity", "@dhruv and @dhruv.m, one character apart, the second with no email. Offboard needs two independent signals; with one it abstains for that app.", "F1"),
         ("Injection", "Three planted notes tell the agent this account is exempt. Each is logged as a finding. None changes a disposition, even with a model that obeys them.", "F7"),
     ]
-    trap_cards = "".join(f"<div class='card lg trap'><h3>{t}</h3><p>{d}</p><span class='tag {c}'>{c}</span></div>" for t, d, c in traps)
+    trap_cards = "".join(f"<div class='card lg trap glow'><h3>{t}</h3><p>{d}</p><span class='tag {c}'>{c}</span></div>" for t, d, c in traps)
     stages = [("Precondition", "read the current state; nothing to do is a result, not an error"), ("Diff", "the exact change, as text, before anything moves"),
               ("Approval", "irreversible actions need a token; a plan file the human edited"), ("Apply", "one attempt; failures escalate, never retry"),
               ("Read-back", "a 200 that changed nothing is a failure, class F5")]
-    stage_html = "".join(f"<div class='stage'><b>{i+1} · {n}</b><span>{d}</span></div>" for i, (n, d) in enumerate(stages))
+    stage_html = "".join(f"<div class='stage glow'><b>{i+1} · {n}</b><span>{d}</span></div>" for i, (n, d) in enumerate(stages))
     return f"""<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
 {FONTS}<title>Offboard</title><style>{LANDING_CSS}</style></head><body>
 <div class="wrap">
@@ -124,49 +126,49 @@ def landing_html(mode: str, model: str, scorecard: Optional[str]) -> str:
 
 <header class="hero">
   <div class="wash a"></div><div class="wash b"></div>
-  <p class="eyebrow">An agent for the day someone leaves</p>
+  <p class="eyebrow"><span class="dot"></span>An agent for the day someone leaves</p>
   <h1>Revoke access. Prove it. Undo it.</h1>
   <p>Offboard walks GitHub, Slack, Google Drive and Sheets for a departing employee, decides what to transfer, revoke or escalate, and passes every write through a five-stage gate. The model proposes; a policy layer decides; one trace file records all of it.</p>
   <div class="cta"><a class="btn blue" href="#run">Start an offboarding ▸</a><a class="btn" href="#how">How it works</a></div>
 </header>
 
 <section id="how">
-  <p class="eyebrow">How it works</p>
+  <p class="eyebrow"><span class="dot"></span>How it works</p>
   <h2>Deterministic code enumerates. The model classifies. Policy decides. The gate writes.</h2>
   <p class="lede">Nothing the model says reaches an API directly. Enumeration is paginated code with a count check, so a dropped page is caught. Every disposition the model proposes is checked against rules that never read content from the apps. Every write is preconditioned, diffed, approved, applied and read back.</p>
-  <div class="flow">{flow_svg()}</div>
+  <div class="flow glow">{flow_svg()}</div>
   <div class="stages">{stage_html}</div>
 </section>
 
 <section id="apps">
-  <p class="eyebrow">Inside each app</p>
+  <p class="eyebrow"><span class="dot"></span>Inside each app</p>
   <h2>Four apps, one interface, twin or live.</h2>
   <p class="lede">Each driver exists twice: a deterministic twin with fault injection for the evaluation suite, and a live client for the real API. Same methods, one flag.</p>
   <div class="grid c2">{app_cards}</div>
 </section>
 
 <section id="traps">
-  <p class="eyebrow">The four traps</p>
+  <p class="eyebrow"><span class="dot"></span>The four traps</p>
   <h2>Seeded into the fixture because a naive agent gets each one wrong.</h2>
   <div class="grid c4" style="margin-top:32px">{trap_cards}</div>
 </section>
 
 <section id="evidence">
-  <p class="eyebrow">Evaluation</p>
+  <p class="eyebrow"><span class="dot"></span>Evaluation</p>
   <h2>A harness that would notice if a defence went missing.</h2>
   <div class="grid c4" style="margin-top:32px">
-    <div class="stat"><b>28</b><span>scenarios, one failure class each</span></div>
-    <div class="stat"><b>27</b><span>fault-matrix cells, invariants only</span></div>
-    <div class="stat"><b>11</b><span>mutants removed, eleven caught</span></div>
-    <div class="stat"><b>8</b><span>named failure classes, F1 to F8</span></div>
+    <div class="stat glow"><b>28</b><span>scenarios, one failure class each</span></div>
+    <div class="stat glow"><b>27</b><span>fault-matrix cells, invariants only</span></div>
+    <div class="stat glow"><b>11</b><span>mutants removed, eleven caught</span></div>
+    <div class="stat glow"><b>8</b><span>named failure classes, F1 to F8</span></div>
   </div>
 </section>
 
 <section id="run">
-  <p class="eyebrow">Run</p>
+  <p class="eyebrow"><span class="dot"></span>Run</p>
   <h2>Choose who is leaving.</h2>
   <p class="lede">Planning is a dry run: every diff, nothing applied. You untick what you are not sure about. Apply executes only what is still ticked, through the gate, and the console opens as it happens. Mode: <b>{mode}</b> · model: <b>{model}</b>.</p>
-  <div class="people" id="people"><div class="person"><span class="smoke">loading directory…</span></div></div>
+  <div class="people glow" id="people"><div class="person"><span class="smoke">loading directory…</span></div></div>
   <div class="card lg peri" id="plan"></div>
 </section>
 
@@ -202,7 +204,7 @@ function renderPlan() {{
   const irr = acts.filter(a => a.risk === 'irreversible').length;
   box.innerHTML = `<h3>${{acts.length}} writes planned for ${{esc(PLAN.target)}}, ${{irr}} irreversible, nothing applied yet.</h3>
     <p class="sub">Untick anything you are not sure about. Escalated items below need a human and will not be touched.</p>
-    <div class="esc">${{esc_.map(e => `<span class="tag escalate" title="${{esc(e.reason)}}">escalated · ${{esc(e.key.split(':').slice(2).join(':'))}}</span>`).join('') || '<span class="smoke">no escalations</span>'}}</div>
+    <div class="esc">${{esc_.map(e => `<span class="tag escalate wrap" title="${{esc(e.reason)}}">escalated · ${{esc(e.key.split(':').slice(2).join(':'))}}</span>`).join('') || '<span class="smoke">no escalations</span>'}}</div>
     <div id="writes">${{acts.map((a,i) => `<label class="write ${{a.approved?'':'off'}}"><input type="checkbox" data-i="${{i}}" ${{a.approved?'checked':''}}><span class="d">${{esc(a.name)}}<small>${{esc(a.diff||'')}}</small></span><span class="tag ${{esc(a.risk)}}">${{esc(a.risk)}}</span></label>`).join('')}}</div>
     <div class="apply"><button class="btn blue" id="applyBtn">Apply ${{acts.filter(a=>a.approved).length}} writes ▸</button><span class="note">Each one goes through the gate; the console opens live. Unticked lines stop at the gate as <b>needs_approval</b>.</span></div>`;
   box.querySelectorAll('input').forEach(cb => cb.onchange = () => {{ PLAN.actions[+cb.dataset.i].approved = cb.checked; renderPlan(); }});

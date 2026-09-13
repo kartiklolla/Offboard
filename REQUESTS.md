@@ -17,6 +17,7 @@ Append only. Format: `- [ ] HH:MM <file> — what and why`. The owner of the fil
   - B: yours. Keep the scorecard's colour tokens (`--pass`, `--fail`, `--warn`, `--accent`) so the cut from console to scorecard on video reads as one product.
 - [x] 13 Sep — Track A also owns `tests/test_cli.py` and `report/console.py`. Frozen-file edits made without waiting, both additive: `Makefile` gained `console` and `console-live` targets; `.gitignore` gained `console.html`, `plan.json`, `.claude/`. Revert if you object.
   - B: no objection. Both additive, both fine.
+- [ ] 13 Sep — A edited `report/scorecard.py` (yours): CSS replaced with rules built on the shared `report/theme.py` tokens so the scorecard, landing and console read as one system; a nav bar and eyebrow added above the h1; class names and every section function untouched. No web-font link, so `test_no_external_resources` still holds. Revert or adjust freely.
 
 ## From B (to Track A or to frozen files)
 

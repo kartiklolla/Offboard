@@ -12,84 +12,66 @@ from core.trace import load_trace, tree
 from evals.matrix import MODES as FAULT_MODES
 from evals.matrix import cells
 from evals.taxonomy import CLASSES, ORDER
+from report.theme import CSS as THEME_CSS
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LIMITATION_KEY = "Limitation text for the scorecard box:"
 STAGES = (("precondition", "precondition"), ("dry_run", "diff"), ("approval", "approval"),
           ("postcondition", "read-back"), ("undo", "undo"))
 
-CSS = """
-:root {
-  --ink: #14161a; --muted: #5b6472; --line: #e2e5ea; --bg: #ffffff; --panel: #f7f8fa;
-  --pass: #1a7f4b; --pass-bg: #e7f4ec; --fail: #b3261e; --fail-bg: #fdeceb;
-  --warn: #8a6100; --warn-bg: #fdf3df; --accent: #2f4fd8;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --ink: #e8eaee; --muted: #98a2b3; --line: #2b3038; --bg: #14161a; --panel: #1b1e24;
-    --pass: #4ac286; --pass-bg: #14301f; --fail: #f2867d; --fail-bg: #331816;
-    --warn: #e0b25c; --warn-bg: #2e2512; --accent: #8aa0ff;
-  }
-}
-* { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--ink);
-  font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-.wrap { max-width: 1120px; margin: 0 auto; padding: 40px 24px 96px; }
-h1 { font-size: 30px; letter-spacing: -0.02em; margin: 0 0 4px; }
-h2 { font-size: 19px; letter-spacing: -0.01em; margin: 0 0 14px; }
-h3 { font-size: 15px; margin: 22px 0 8px; }
-.sub { color: var(--muted); margin: 0 0 28px; }
-section { border-top: 1px solid var(--line); padding: 28px 0 8px; }
-.headline { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 28px; }
-.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
-  padding: 12px 16px; min-width: 132px; flex: 1 1 132px; }
-.stat .n { font-size: 26px; font-weight: 650; letter-spacing: -0.02em; display: block; }
-.stat .k { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
-table { border-collapse: collapse; width: 100%; font-size: 14px; }
-th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
-th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
-td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
-.bar { height: 7px; border-radius: 4px; background: var(--line); position: relative; min-width: 110px; }
-.bar span { position: absolute; inset: 0 auto 0 0; border-radius: 4px; background: var(--pass); }
-.bar.low span { background: var(--fail); }
-.bar.mid span { background: var(--warn); }
-.tag { display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 12px; font-weight: 600; }
-.tag.pass { color: var(--pass); background: var(--pass-bg); }
-.tag.fail { color: var(--fail); background: var(--fail-bg); }
-.tag.warn { color: var(--warn); background: var(--warn-bg); }
-code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
-.fail-list { margin: 6px 0 0; padding-left: 18px; color: var(--fail); }
-.fail-list li { margin: 2px 0; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; }
-details { border-bottom: 1px solid var(--line); }
-details > summary { cursor: pointer; padding: 7px 4px; list-style: none; display: flex; gap: 10px; align-items: baseline; }
-details > summary::-webkit-details-marker { display: none; }
-details > summary::before { content: "▸"; color: var(--muted); font-size: 11px; }
-details[open] > summary::before { content: "▾"; }
-.tree details { border: 0; }
-.tree .leaf { padding: 3px 4px 3px 21px; display: flex; gap: 10px; align-items: baseline; }
-.tree .kind { color: var(--muted); font-size: 12px; min-width: 88px; }
-.tree .sid { color: var(--muted); font-size: 12px; min-width: 34px; text-align: right; }
-.tree .gate { color: var(--accent); font-weight: 600; }
-.tree .bad { color: var(--fail); }
-.stages { margin: 2px 0 8px 55px; border-left: 2px solid var(--line); padding: 2px 0 2px 12px; }
-.stages div { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; color: var(--muted); }
-.stages b { color: var(--ink); font-weight: 600; }
-.grid { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
-.cell { text-align: center; font-size: 12px; font-weight: 600; }
-.cell.ok { color: var(--pass); background: var(--pass-bg); }
-.cell.no { color: var(--fail); background: var(--fail-bg); }
-.cell.na { color: var(--muted); }
-.box { background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--warn);
-  border-radius: 8px; padding: 14px 18px; }
-.box.todo { border-left-color: var(--fail); }
-.pin { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; margin: 0 0 14px; }
-.pin li { font-size: 13px; }
-.controls { display: flex; gap: 8px; margin: 0 0 10px; }
-button { font: inherit; font-size: 13px; padding: 4px 12px; border-radius: 7px; cursor: pointer;
-  border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
-.muted { color: var(--muted); }
-.same { color: var(--pass); font-weight: 600; }
-.diff { color: var(--fail); font-weight: 600; }
+CSS = THEME_CSS + """
+.wrap { max-width:1240px }
+.score h1 { font-size:48px; margin:24px 0 8px }
+.score h2 { font-size:28px; margin:0 0 20px }
+.score h3 { font-family:var(--mono); font-weight:500; font-size:12px; text-transform:uppercase; letter-spacing:-.033em; color:var(--smoke); margin:28px 0 10px }
+.sub { color:var(--graphite); margin:0 0 36px; font-size:15px; max-width:72ch }
+section { border-top:1px solid var(--ash); padding:48px 0 16px }
+.headline { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin:0 0 40px }
+.stat { position:relative; isolation:isolate; --g1:var(--coral); --g2:var(--sky); transition:border-color .25s ease }
+.stat::before { content:""; position:absolute; inset:-6px; border-radius:inherit; background:linear-gradient(120deg, var(--g1), var(--g2)); filter:blur(18px); opacity:0; z-index:-1; transition:opacity .3s ease; pointer-events:none }
+.stat:hover::before { opacity:.55 } .stat:hover { border-color:transparent }
+.stat:nth-child(4n+2) { --g1:var(--sky); --g2:var(--mint) } .stat:nth-child(4n+3) { --g1:var(--gold); --g2:var(--coral) } .stat:nth-child(4n) { --g1:var(--mint); --g2:var(--periwinkle) }
+.stat .n { font-family:var(--serif); font-size:40px; line-height:1.1; letter-spacing:-.02em; display:block }
+.stat .k { color:var(--smoke); font-size:12px; text-transform:uppercase; letter-spacing:-.033em }
+table { font-size:13px } th, td { padding:10px 12px }
+td.num, th.num { text-align:right; font-variant-numeric:tabular-nums }
+.bar { height:8px; border-radius:9999px; background:var(--ash-soft); position:relative; min-width:110px; overflow:hidden }
+.bar span { position:absolute; inset:0 auto 0 0; border-radius:9999px; background:linear-gradient(90deg, var(--mint), var(--sky)) }
+.bar.low span { background:linear-gradient(90deg, var(--coral), var(--crimson)) }
+.bar.mid span { background:linear-gradient(90deg, var(--gold), var(--coral)) }
+.tag.pass { background:var(--mint); border-color:transparent } .tag.fail { background:var(--coral); border-color:transparent } .tag.warn { background:var(--gold); border-color:transparent }
+code, .mono { font-family:var(--mono); font-size:12.5px }
+.fail-list { margin:6px 0 0; padding-left:18px; color:var(--crimson) }
+.fail-list li { margin:3px 0; font-size:12.5px; overflow-wrap:anywhere }
+details { border-bottom:1px solid var(--ash-soft) }
+details > summary { cursor:pointer; padding:10px 6px; list-style:none; display:flex; gap:12px; align-items:baseline; flex-wrap:wrap }
+details > summary::-webkit-details-marker { display:none }
+details > summary::before { content:"▸"; color:var(--smoke); font-size:11px }
+details[open] > summary::before { content:"▾" }
+.tree { border:1px solid var(--ash); border-radius:24px; background:var(--paper); padding:12px 16px }
+.tree details { border:0 }
+.tree .leaf { padding:4px 6px 4px 22px; display:flex; gap:12px; align-items:baseline; flex-wrap:wrap }
+.tree .kind { color:var(--smoke); font-size:12px; min-width:92px }
+.tree .sid { color:var(--smoke); font-size:12px; min-width:36px; text-align:right }
+.tree .gate { color:var(--lake); font-weight:500 }
+.tree .bad { color:var(--crimson) }
+.stages { margin:4px 0 10px 58px; border-left:1px solid var(--ash); padding:2px 0 2px 14px }
+.stages div { font-size:12.5px; color:var(--graphite); overflow-wrap:anywhere }
+.stages b { color:var(--offblack); font-weight:500 }
+.grid { border:1px solid var(--ash); border-radius:24px; overflow:hidden; background:var(--paper) }
+.grid td, .grid th { padding:8px 10px }
+.cell { text-align:center; font-size:12px; font-weight:500 }
+.cell.ok { background:var(--mint) } .cell.no { background:var(--coral) } .cell.na { color:var(--smoke) }
+.box { border:1px solid var(--ash); border-radius:24px; padding:24px 28px; background:var(--gold); border-color:transparent; font-family:var(--serif); font-size:18px; line-height:1.35 }
+.box.todo { background:var(--coral) }
+.pin { border:1px solid var(--ash); border-radius:24px; padding:14px 20px; margin:0 0 16px; background:var(--parchment) }
+.pin li { font-size:13px; margin:3px 0 }
+.controls { display:flex; gap:8px; margin:0 0 12px }
+button { font:500 12px/1.2 var(--mono); text-transform:uppercase; letter-spacing:-.02em; padding:8px 16px; border-radius:100px; cursor:pointer; border:1px solid var(--offblack); background:transparent; color:var(--offblack) }
+button:hover { background:var(--offblack); color:var(--parchment) }
+.muted { color:var(--smoke) }
+.same { color:var(--offblack); font-weight:500 } .same::before { content:""; display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--mint); margin-right:6px }
+.diff { color:var(--crimson); font-weight:500 }
 """
 
 JS = """
@@ -470,8 +452,12 @@ def render(results: dict, baseline: Optional[dict], demo: Optional[Trace],
         "<!doctype html><html lang='en'><head><meta charset='utf-8'>"
         "<meta name='viewport' content='width=device-width,initial-scale=1'>"
         "<title>Offboard reliability scorecard</title>"
-        f"<style>{CSS}</style></head><body><div class='wrap'>"
-        "<h1>Offboard reliability scorecard</h1>"
+        f"<style>{CSS}</style></head><body><div class='wrap score'>"
+        "<nav class='nav'><a class='brand' href='/'><i></i>Offboard</a>"
+        "<div class='links'><a href='/#how'>How it works</a><a href='/#traps'>Traps</a><a href='/#run'>Run</a></div>"
+        "<div class='actions'><a class='btn small black' href='/console'>Console</a></div></nav>"
+        "<p class='eyebrow'><span class='dot'></span>Reliability scorecard</p>"
+        "<h1>Would the suite notice if a defence went missing?</h1>"
         f"<p class='sub'>Run <code>{label}</code> against the <code>{mode}</code> drivers, {generated}. "
         "Every number on this page is read from a trace file, not from the agent's own account of itself.</p>"
         f"{header(results, baseline, demo, mutants)}{body}"

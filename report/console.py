@@ -30,20 +30,20 @@ tr.trap td:first-child { box-shadow:inset 3px 0 0 var(--offblack) }
 .filters { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap }
 .filters button { border:1px solid var(--ash); background:var(--parchment); color:var(--graphite); padding:6px 14px; border-radius:9999px; font:inherit; font-size:12px; text-transform:uppercase; letter-spacing:-.033em; cursor:pointer }
 .filters button.on { background:var(--offblack); color:var(--parchment); border-color:var(--offblack) }
-.gate { border:1px solid var(--ash); border-radius:24px; background:var(--paper); margin:8px 0; overflow:hidden }
+.gate { border:1px solid var(--ash); border-radius:24px; background:var(--paper); margin:8px 0 }
 .gate.failed_apply, .gate.failed_postcondition { border-color:var(--coral) } .gate.needs_approval, .gate.blocked_precondition { border-color:var(--gold) }
 .gate summary { list-style:none; cursor:pointer; padding:12px 18px; display:flex; gap:12px; align-items:center; flex-wrap:wrap }
 .gate summary::-webkit-details-marker { display:none }
 .gate summary .n { color:var(--smoke); font-size:12px; min-width:44px }
 .gate summary .name { font-weight:500 }
-.gate summary .diff { color:var(--graphite); flex:1; min-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12.5px }
+.gate summary .diff { color:var(--graphite); flex:1 1 200px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12.5px }
 .gate .body { padding:12px 18px 16px 74px; display:grid; grid-template-columns:140px 1fr; gap:6px 12px; font-size:12.5px; border-top:1px solid var(--ash-soft) }
 .gate .body .k { color:var(--smoke); text-transform:uppercase; letter-spacing:-.033em; font-size:11px; padding-top:2px }
 .gate .calls { grid-column:1 / -1; margin-top:8px; border-top:1px solid var(--ash-soft); padding-top:8px }
 .gate .calls div { font-size:12px; color:var(--graphite) } .gate .calls .err { color:var(--crimson) }
 .skipped { padding:8px 18px; color:var(--smoke); font-size:12.5px; border:1px dashed var(--ash); border-radius:9999px; margin:6px 0 }
 .findings { display:flex; flex-direction:column; gap:8px }
-.finding { display:flex; gap:12px; align-items:baseline; border:1px solid var(--ash); border-radius:9999px; padding:10px 18px; font-size:13px; background:var(--parchment) }
+.finding { display:flex; gap:12px; align-items:baseline; flex-wrap:wrap; border:1px solid var(--ash); border-radius:24px; padding:10px 18px; font-size:13px; background:var(--parchment) }
 .finding .n { color:var(--smoke); font-size:12px }
 .summary p { margin:8px 0; padding:14px 20px; border:1px solid var(--ash); border-radius:24px; background:var(--paper); font-family:var(--serif); font-size:18px; line-height:1.35 }
 .summary p.dropped { text-decoration:line-through; color:var(--smoke) } .summary p.dropped small { text-decoration:none; display:block; font-family:var(--mono); font-size:12px; color:var(--crimson); margin-top:6px }
@@ -84,16 +84,16 @@ function render(steps){
   $('#counts').innerHTML = [
     [items?items.result.count:disps.length,'access items'],[writes.length,'writes gated'],[applied,'applied'],[failed,'failed'],[esc_,'escalated'],
     [findings.length,'findings'],[kind('model_call').length,'model calls'],[kind('tool_call').length,'tool calls'],['$'+cost.toFixed(4),'model cost'],[(ms/1000).toFixed(1)+'s','wall time']
-  ].map(([b,l])=>`<div class="count"><b>${esc(b)}</b><span>${esc(l)}</span></div>`).join('');
+  ].map(([b,l])=>`<div class="count glow"><b>${esc(b)}</b><span>${esc(l)}</span></div>`).join('');
 
   const phaseNames = ['resolve_identity','inventory','classify','plan','execute','report'];
   const phases = kind('phase'); const open = steps.length && !status ? phaseNames.filter(p=>!phases.some(x=>x.name===p))[0] : null;
   $('#phases').innerHTML = phaseNames.map(p => { const ph = phases.find(x=>x.name===p); const children = steps.filter(s=>s.parent===(ph||{}).step).length;
-    return `<div class="phase ${ph?'done':(p===open?'open':'')}"><b>${esc(p.replace('_',' '))}</b><span>${ph?children+' steps · '+ph.latency_ms+' ms':(p===open?'running…':'')}</span></div>`; }).join('');
+    return `<div class="phase glow ${ph?'done':(p===open?'open':'')}"><b>${esc(p.replace('_',' '))}</b><span>${ph?children+' steps · '+ph.latency_ms+' ms':(p===open?'running…':'')}</span></div>`; }).join('');
 
   const ids = kind('identity'); const idOv = findings.filter(f=>f.name.startsWith('override:identity:'));
   $('#identity').innerHTML = ids.length ? `<div class="cards">${ids.map(i => { const r=i.result; const ov = idOv.find(f=>f.name.endsWith(':'+i.name));
-    return `<div class="card" id="s${i.step}"><h3>${esc(i.name)} ${pill(r.status)}</h3>
+    return `<div class="card glow" id="s${i.step}"><h3><span><span class="dot ${esc(i.name)}"></span>${esc(i.name)}</span> ${pill(r.status)}</h3>
       <div class="row"><span class="muted">principal</span><span class="mono">${esc(r.principal_id||'—')}</span></div>
       <div class="row"><span class="muted">display</span><span>${esc(r.display)}</span></div>
       <div class="row"><span class="muted">signals</span><span>${(r.signals||[]).map(s=>pill(s,'rule')).join(' ')||'<span class="muted">none</span>'}</span></div>
@@ -106,7 +106,7 @@ function render(steps){
   $('#filters').querySelectorAll('button').forEach(b=>b.onclick=()=>{FILTER=b.dataset.app; render(steps);});
   const rows = disps.filter(d=>FILTER==='all'||d.name.startsWith(FILTER+':')).map(d => { const r=d.result; const [app,kind_,...rest]=d.name.split(':'); const res=rest.join(':');
     const ov = ovs.find(f=>f.name==='override:'+d.name); const ij = inj.find(f=>f.args&&f.args.item_key===d.name);
-    return `<tr class="${TRAPS.includes(d.name)?'trap':''}" id="s${d.step}"><td class="mono">${esc(res)}</td><td>${esc(app)}</td><td>${esc(kind_)}</td>
+    return `<tr class="${TRAPS.includes(d.name)?'trap':''}" id="s${d.step}"><td class="mono">${esc(res)}</td><td><span class="dot ${esc(app)}"></span>${esc(app)}</td><td>${esc(kind_)}</td>
       <td>${pill(r.disposition)}${r.transfer_to?` <span class="muted">→ ${esc(r.transfer_to)}</span>`:''}</td>
       <td>${r.rule?pill(r.rule,'rule'):''} <span class="muted">${esc(r.source)}</span>${ov?` ${pill(ov.failure_class)} <span class="muted">model said ${esc(ov.args.model_said ?? 'nothing')}</span>`:''}</td>
       <td>${ij?pill('injection','F7')+' <span class="muted">'+esc(ij.args.field)+'</span>':''}</td><td class="muted">${esc(r.reason)}</td></tr>`; }).join('');
@@ -117,7 +117,7 @@ function render(steps){
   const stage = (k,v) => v===undefined||v===null ? '' : `<div class="k">${k}</div><div>${v}</div>`;
   const gateHtml = g => { const s = g.result?g.result.status:'running'; const calls = steps.filter(c=>c.parent===g.step&&c.kind==='tool_call');
     const undo = g.undo||{};
-    return `<details class="gate ${esc(s)}" id="s${g.step}" ${/^failed|needs_approval/.test(s)?'open':''}><summary><span class="n">s${g.step}</span><span class="name">${esc(g.name)}</span>${pill(s)}${pill(g.risk)}<span class="diff">${esc(g.dry_run||'')}</span></summary>
+    return `<details class="gate glow ${esc(s)}" id="s${g.step}" ${/^failed|needs_approval/.test(s)?'open':''}><summary><span class="n">s${g.step}</span><span class="name">${esc(g.name)}</span>${pill(s)}${pill(g.risk)}<span class="diff">${esc(g.dry_run||'')}</span></summary>
       <div class="body">
         ${stage('1 precondition', g.precondition?`${g.precondition.ok?'ok':'false'} <span class="muted mono">${esc(JSON.stringify(g.precondition.value))}</span>`:undefined)}
         ${stage('2 diff', g.dry_run?`<span class="diff">${esc(g.dry_run)}</span>`:undefined)}
@@ -136,7 +136,7 @@ function render(steps){
   $('#timeline').innerHTML = (seq.map(e=>e.t==='gate'?gateHtml(e.s):`<div class="skipped" id="s${e.s.step}">s${e.s.step} skipped <b>${esc(e.s.name)}</b> — ${esc(e.s.note||'')}</div>`).join('')
     + (pending.length && !status ? pending.map(n=>`<div class="skipped">queued ${esc(n)}</div>`).join('') : '')) || '<div class="empty">no gate steps yet</div>';
 
-  $('#findings').innerHTML = findings.length ? `<div class="findings">${findings.map(f=>`<div class="finding"><span class="n"><a href="#s${f.step}">s${f.step}</a></span>${pill(f.failure_class)}<b>${esc(f.name)}</b><span class="muted">${esc(f.note||'')}${f.args&&f.args.model_said!==undefined?' · model said '+esc(f.args.model_said ?? 'nothing')+', policy said '+esc(f.args.policy_said ?? 'nothing'):''}</span></div>`).join('')}</div>` : '<div class="empty">no findings</div>';
+  $('#findings').innerHTML = findings.length ? `<div class="findings">${findings.map(f=>`<div class="finding glow"><span class="n"><a href="#s${f.step}">s${f.step}</a></span>${pill(f.failure_class)}<b>${esc(f.name)}</b><span class="muted">${esc(f.note||'')}${f.args&&f.args.model_said!==undefined?' · model said '+esc(f.args.model_said ?? 'nothing')+', policy said '+esc(f.args.policy_said ?? 'nothing'):''}</span></div>`).join('')}</div>` : '<div class="empty">no findings</div>';
 
   const sum = kind('summary').slice(-1)[0]; const claims = findings.filter(f=>f.name.startsWith('unsupported_claim:'));
   const link = t => esc(t).replace(/\[s(\d+)\]/g, (m,n)=>`<a href="#s${n}">[s${n}]</a>`);
@@ -165,7 +165,7 @@ BODY = """
     <div class="links"><a href="/#how">How it works</a><a href="/#traps">Traps</a><a href="/#run">Run</a></div>
     <div class="actions">{links}<a class="btn small" href="/">Start over</a></div>
   </nav>
-  <p class="eyebrow">Run console — one trace, read live</p>
+  <p class="eyebrow"><span class="dot"></span>Run console — one trace, read live</p>
   <div class="head" id="head"></div>
   <div class="live" id="live"></div>
   <div class="counts" id="counts"></div>
