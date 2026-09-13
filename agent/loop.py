@@ -54,7 +54,7 @@ def run_offboarding(config: RunConfig, drivers: Drivers, model: Any, tracer: Tra
             if config.manager_email:
                 hr_record["manager"] = config.manager_email
             state = RunState(hr_record=hr_record, run_step_id=run_step.step)
-            policy = P.Policy(tracer, hr_record, config.hr)
+            policy = P.Policy(tracer, hr_record, config.hr, capabilities={"slack_deactivation": getattr(drivers.slack, "supports_deactivation", True)})
 
             _resolve_identity(config, drivers, model, tracer, policy, state)
             _inventory(config, drivers, tracer, state)

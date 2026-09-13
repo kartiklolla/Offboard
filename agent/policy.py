@@ -96,11 +96,12 @@ def signals(app: str, candidate: dict, hr_record: dict) -> set[str]:
 
 
 class Policy:
-    def __init__(self, tracer: Tracer, hr_record: dict, hr: Iterable[dict] = ()) -> None:
+    def __init__(self, tracer: Tracer, hr_record: dict, hr: Iterable[dict] = (), capabilities: Optional[dict] = None) -> None:
         self.tracer = tracer
         self.hr_record = hr_record
         self.hr = list(hr)
         self.manager = hr_record.get("manager")
+        self.capabilities = {"slack_deactivation": True, **(capabilities or {})}
 
     def resolve_identity(self, app: str, candidates: list[dict], model_pick: Optional[str], model_reason: str = "") -> Identity:
         scored = {c["id"]: signals(app, c, self.hr_record) for c in candidates}
@@ -150,6 +151,8 @@ class Policy:
             return Disposition(TRANSFER_THEN_REVOKE, "owned solely by the employee; ownership goes to the manager so nothing is lost", "policy", "R4", transfer_to=self.manager)
         if kind == "external_share":
             return Disposition(ESCALATE, f"shared with external party {item.hints.get('external_email')}; a human decides", "policy", "R5")
+        if item.app == "slack" and kind == "user" and not self.capabilities.get("slack_deactivation", True):
+            return Disposition(ESCALATE, "the Slack API cannot deactivate users on this plan (admin.users.remove needs Enterprise Grid); a workspace admin does it in the UI", "policy", "R9")
         return Disposition(REVOKE, f"{kind} held by the employee", "policy", "R8")
 
     def enforce(self, items: list[AccessItem], proposals: list[dict]) -> dict[str, Disposition]:

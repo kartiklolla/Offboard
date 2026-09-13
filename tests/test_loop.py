@@ -151,6 +151,24 @@ class GullibleModel(unittest.TestCase):
         self.assertEqual(steps[-1]["name"], "clean")
 
 
+class Capabilities(unittest.TestCase):
+    def test_slack_without_deactivation_escalates_the_account(self) -> None:
+        from adapters import slack as slack_mod
+        original = slack_mod.SlackTwin.supports_deactivation
+        slack_mod.SlackTwin.supports_deactivation = False
+        try:
+            steps, state, _ = run()
+        finally:
+            slack_mod.SlackTwin.supports_deactivation = original
+        d = {s["name"]: s["result"] for s in by_kind(steps, "disposition")}
+        self.assertEqual(d["slack:user:slack_account"]["disposition"], "escalate")
+        self.assertEqual(d["slack:user:slack_account"]["rule"], "R9")
+        self.assertEqual(tool_calls(steps, "deactivate_user"), [])
+        self.assertFalse(next(u for u in state.data["slack"]["users"] if u["id"] == "U_DHRUV")["deleted"])
+        self.assertTrue(all(gate_status(steps, f"revoke:#{c}") == "applied" for c in ("general", "deploys", "billing-private")))
+        self.assertEqual(steps[-1]["name"], "clean")
+
+
 class Faults(unittest.TestCase):
     def test_http_500_mid_plan_marks_dirty_and_stops(self) -> None:
         steps, state, gate = run(faults=[{"op": "remove_permission", "mode": "http_500", "on_call": 2}])
