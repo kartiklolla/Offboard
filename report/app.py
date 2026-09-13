@@ -274,8 +274,9 @@ people();
 
 
 class App:
-    def __init__(self, mode: str, model: str, hr: Optional[str], trace: str, scorecard: Optional[str], seed: str = "acme") -> None:
+    def __init__(self, mode: str, model: str, hr: Optional[str], trace: str, scorecard: Optional[str], seed: str = "acme", apps: Optional[str] = None, sheet: Optional[str] = None, channel: Optional[str] = None) -> None:
         self.mode, self.model, self.hr, self.trace, self.scorecard, self.seed = mode, model, hr, trace, scorecard, seed
+        self.apps, self.sheet, self.channel = apps, sheet, channel
         self.plan_path = os.path.join(ROOT, "plan.json")
         self.lock = threading.Lock()
         self.landing = landing_html(mode, model, scorecard).encode("utf-8")
@@ -292,6 +293,9 @@ class App:
         cmd = [sys.executable, os.path.join(ROOT, "cli.py"), *args, "--mode", self.mode, "--model", self.model]
         if self.hr:
             cmd += ["--hr", self.hr]
+        for flag, value in (("--apps", self.apps), ("--sheet", self.sheet), ("--channel", self.channel)):
+            if value:
+                cmd += [flag, value]
         return cmd
 
     def plan(self, user: str) -> dict:
@@ -376,6 +380,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     p.add_argument("--hr", help="HR directory JSON for live mode")
     p.add_argument("--trace", default=os.path.join(ROOT, "traces", "run.jsonl"))
     p.add_argument("--scorecard", help="relative path to scorecard.html, served and linked")
+    p.add_argument("--apps", help="comma-separated subset of github,slack,drive,sheets, passed through to the CLI")
+    p.add_argument("--sheet", help="evidence sheet id, or 'none'; defaults to GOOGLE_SHEET_ID in the CLI")
+    p.add_argument("--channel", help="summary channel name, or 'none'")
     p.add_argument("--out", help="write the landing page as a static file instead of serving")
     args = p.parse_args(argv)
     if args.out:
@@ -383,7 +390,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             fh.write(landing_html(args.mode, args.model, args.scorecard))
         sys.stdout.write(f"landing: {args.out}\n")
         return 0
-    serve(App(args.mode, args.model, args.hr, args.trace, args.scorecard), args.serve)
+    serve(App(args.mode, args.model, args.hr, args.trace, args.scorecard, apps=args.apps, sheet=args.sheet, channel=args.channel), args.serve)
     return 0
 
 

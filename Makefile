@@ -29,4 +29,5 @@ app:
 	python3 -m report.app --serve 8765 --mode twin --model heuristic --scorecard scorecard.html
 
 app-live:
-	.venv/bin/python -m report.app --serve 8765 --mode live --model anthropic --hr hr.json --scorecard scorecard.html
+	set -a; . ./.env; set +a; .venv/bin/python -m report.app --serve 8765 --mode live --model heuristic \
+	  --hr hr.json --apps github,slack,sheets --sheet "$$GOOGLE_SHEET_ID" --scorecard scorecard.html
