@@ -24,3 +24,9 @@ console:
 
 console-live:
 	python3 -m report.console --trace traces/run.jsonl --serve 8765 --scorecard scorecard.html
+
+app:
+	python3 -m report.app --serve 8765 --mode twin --model heuristic --scorecard scorecard.html
+
+app-live:
+	.venv/bin/python -m report.app --serve 8765 --mode live --model anthropic --hr hr.json --scorecard scorecard.html

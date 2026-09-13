@@ -22,10 +22,16 @@ python3 cli.py plan --user dhruv@acme.dev              # writes plan.json, nothi
 python3 cli.py apply --plan plan.json                  # executes only what is still approved
 ```
 
-Watch it happen in a browser:
+Or do the same from the browser: landing page, pick who is leaving, untick lines of the plan, apply, and the console opens live.
 
 ```bash
-make console-live                                      # http://127.0.0.1:8765, polls traces/run.jsonl
+make app                                               # http://127.0.0.1:8765  (make app-live for real APIs)
+```
+
+The console alone, watching a trace file:
+
+```bash
+make console-live                                      # polls traces/run.jsonl
 python3 cli.py apply --plan plan.json --trace traces/run.jsonl
 ```
 
@@ -94,7 +100,7 @@ adapters/   base.py (AccessItem, RISK map, paginated collect), github.py slack.p
 twins/      state.py, faults.py (http_500, rate_limit_429, silent_noop, stale_read, partial_page), driver.py, fixtures/acme.json
 agent/      prompts.py, model.py, policy.py, tools.py, loop.py
 evals/      taxonomy.py, schema.py, runner.py, matrix.py, mutants.py, scenarios/, results/
-report/     scorecard.py (per-class board), console.py (one run, static or live)
+report/     scorecard.py (per-class board), console.py (one run, static or live), app.py (landing + plan/apply + console server), theme.py
 cli.py      run · plan · apply · undo
 tests/      unittest, 127 tests
 BRIEF.md    one-page reliability brief · VIDEO.md  two-minute demo script

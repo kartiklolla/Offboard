@@ -8,97 +8,57 @@ import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Optional
 
-CSS = """
-:root { --bg:#0C0F14; --panel:#12161D; --soft:#1A2029; --line:#252D39; --line-hi:#36404F; --ink:#E7EBF2; --muted:#8B97A8; --dim:#5C6878;
-  --accent:#F5B84A; --accent-bg:#2A2110; --pass:#3DDC97; --pass-bg:#0F2A20; --fail:#FF6B6B; --fail-bg:#33171A; --warn:#F5B84A; --warn-bg:#2A2110; --info:#7AA2F7; --info-bg:#161F35; }
-* { box-sizing:border-box }
-html { background:var(--bg) }
-body { margin:0; background:var(--bg); color:var(--ink); font:13.5px/1.55 "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  background-image:linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px); background-size:48px 48px; background-position:-1px -1px; }
-body::before { content:""; position:fixed; inset:0; background:radial-gradient(ellipse at 50% -10%, rgba(245,184,74,.10), transparent 55%); pointer-events:none }
-.wrap { position:relative; max-width:1240px; margin:0 auto; padding:28px 24px 90px; }
-.px { font-family:"Press Start 2P", "JetBrains Mono", monospace; text-transform:uppercase; letter-spacing:.04em }
-.brand { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:14px 18px; border:1px solid var(--line-hi); background:linear-gradient(180deg, rgba(255,255,255,.02), transparent), var(--panel); margin-bottom:22px }
-.brand .word { font-size:22px; color:var(--accent); text-shadow:0 0 14px rgba(245,184,74,.55), 0 0 2px rgba(245,184,74,.9); line-height:1 }
-.brand .word small { display:block; font:11px/1.5 "JetBrains Mono", monospace; color:var(--muted); text-transform:none; letter-spacing:0; text-shadow:none; margin-top:8px }
-.brand .tag { font-size:9px; color:var(--muted); text-align:right; line-height:1.9 }
-.brand .tag b { display:block; color:var(--ink); font-size:10px }
-h1 { font-size:20px; margin:0; font-weight:600; letter-spacing:-.01em }
-h2 { font-family:"Press Start 2P", monospace; font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--accent); margin:38px 0 12px; font-weight:400; display:flex; align-items:center; gap:12px }
-h2::after { content:""; flex:1; height:1px; background:linear-gradient(90deg, var(--line-hi), transparent) }
-.mono, code, .diff { font-family:inherit; font-size:12.5px }
-.muted { color:var(--muted) }
-.head { display:flex; flex-wrap:wrap; align-items:center; gap:10px 16px; }
-.head .muted { font-size:12px }
-.pill { display:inline-block; padding:3px 9px; font-size:11px; font-weight:600; border:1px solid var(--line-hi); background:var(--soft); vertical-align:middle; text-transform:uppercase; letter-spacing:.06em }
-.pill.clean, .pill.applied, .pill.resolved, .pill.posted { background:var(--pass-bg); color:var(--pass); border-color:rgba(61,220,151,.35) }
-.pill.dirty, .pill.failed_apply, .pill.failed_postcondition { background:var(--fail-bg); color:var(--fail); border-color:rgba(255,107,107,.4) }
-.pill.needs_human, .pill.needs_approval, .pill.blocked_precondition, .pill.escalate, .pill.suppressed { background:var(--warn-bg); color:var(--warn); border-color:rgba(245,184,74,.4) }
-.pill.dry_run, .pill.skipped_dry_run, .pill.running, .pill.transfer_then_revoke { background:var(--info-bg); color:var(--info); border-color:rgba(122,162,247,.4) }
-.pill.revoke { background:var(--soft); color:var(--ink) }
-.pill.F1,.pill.F2,.pill.F3,.pill.F4,.pill.F5,.pill.F6,.pill.F7,.pill.F8 { background:var(--fail-bg); color:var(--fail); border-color:rgba(255,107,107,.4); font-family:"Press Start 2P", monospace; font-size:8px; padding:5px 7px }
-.pill.rule { color:var(--muted); font-weight:500; text-transform:none; letter-spacing:0 }
-.pill.irreversible { color:var(--fail); border-color:rgba(255,107,107,.3); background:transparent }
-.pill.reversible { color:var(--muted); background:transparent }
-.counts { display:grid; grid-template-columns:repeat(auto-fit,minmax(112px,1fr)); gap:8px; margin-top:16px }
-.count { background:var(--panel); border:1px solid var(--line); padding:12px 12px 10px; position:relative }
-.count::before { content:""; position:absolute; top:0; left:0; width:14px; height:2px; background:var(--accent) }
-.count b { display:block; font-size:24px; font-variant-numeric:tabular-nums; line-height:1.1; font-weight:600 }
-.count span { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em }
-.phases { display:grid; grid-template-columns:repeat(6,1fr); gap:6px }
-.phase { background:var(--panel); border:1px solid var(--line); padding:10px 12px; font-size:12px; position:relative }
-.phase::before { content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--line-hi) }
-.phase.done::before { background:var(--pass) } .phase.open::before { background:var(--accent); animation:pulse 1.1s infinite }
-.phase b { display:block; font-weight:600; text-transform:uppercase; letter-spacing:.06em; font-size:11px } .phase span { color:var(--muted); font-size:11.5px }
-@keyframes pulse { 0%,100% { opacity:1 } 50% { opacity:.35 } }
-@media (prefers-reduced-motion: reduce) { .phase.open::before, .live b.on { animation:none } }
-.cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:8px }
-.card { background:var(--panel); border:1px solid var(--line); padding:12px 14px }
-.card h3 { margin:0 0 8px; font-size:12px; display:flex; justify-content:space-between; align-items:center; text-transform:uppercase; letter-spacing:.08em }
-.card .row { display:flex; justify-content:space-between; gap:8px; font-size:12.5px; padding:3px 0; border-bottom:1px dashed var(--line) } .card .row:last-child { border-bottom:none }
-.tablewrap { overflow-x:auto; border:1px solid var(--line); background:var(--panel) }
-table { border-collapse:collapse; width:100%; font-size:12.5px }
-th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top }
-th { font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); background:var(--soft); font-weight:600 }
-tr:last-child td { border-bottom:none }
-tr.trap td:first-child { box-shadow:inset 3px 0 0 var(--accent) }
-.filters { display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap }
-.filters button { border:1px solid var(--line-hi); background:var(--panel); color:var(--muted); padding:4px 12px; font:inherit; font-size:11px; text-transform:uppercase; letter-spacing:.08em; cursor:pointer }
-.filters button.on { background:var(--accent); color:#1A1206; border-color:var(--accent); font-weight:700 }
-.filters button:focus-visible { outline:2px solid var(--accent); outline-offset:2px }
-.gate { border:1px solid var(--line); background:var(--panel); margin:6px 0; position:relative }
-.gate::before { content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--line-hi) }
-.gate.applied::before { background:var(--pass) } .gate.failed_apply::before, .gate.failed_postcondition::before { background:var(--fail) }
-.gate.needs_approval::before, .gate.blocked_precondition::before { background:var(--warn) } .gate.skipped_dry_run::before { background:var(--info) }
-.gate summary { list-style:none; cursor:pointer; padding:9px 14px; display:flex; gap:12px; align-items:center; flex-wrap:wrap }
+from report.theme import CSS as THEME_CSS, FONTS
+
+CSS = THEME_CSS + """
+.console .head { display:flex; flex-wrap:wrap; align-items:baseline; gap:12px 20px; margin-top:16px }
+.console .head h1 { font-size:40px }
+.console .live { font-size:12px; text-transform:uppercase; letter-spacing:-.033em; color:var(--smoke); margin-top:10px; display:flex; align-items:center; gap:8px }
+.counts { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; margin-top:28px }
+.count { border:1px solid var(--ash); border-radius:24px; padding:16px 18px 14px; background:var(--parchment) }
+.count b { display:block; font-family:var(--serif); font-weight:400; font-size:32px; line-height:1.1; font-variant-numeric:tabular-nums }
+.count span { font-size:12px; text-transform:uppercase; letter-spacing:-.033em; color:var(--smoke) }
+.console h2 { font-size:28px; margin:64px 0 20px; padding-top:24px; border-top:1px solid var(--ash) }
+.phases { display:grid; grid-template-columns:repeat(6,1fr); gap:8px }
+.phase { border:1px solid var(--ash); border-radius:9999px; padding:10px 18px; font-size:12px; display:flex; flex-direction:column; gap:2px; background:var(--parchment) }
+.phase.done { background:var(--mint); border-color:transparent } .phase.open { background:var(--periwinkle); border-color:transparent; animation:pulse 1.4s infinite }
+.phase b { font-weight:500; text-transform:uppercase; letter-spacing:-.033em } .phase span { color:var(--graphite); font-size:11.5px }
+.cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:10px }
+.card h3 { font-family:var(--mono); font-weight:500; font-size:12px; text-transform:uppercase; letter-spacing:-.033em; display:flex; justify-content:space-between; align-items:center; margin-bottom:10px }
+.card .row { display:flex; justify-content:space-between; gap:12px; font-size:13px; padding:6px 0; border-bottom:1px solid var(--ash-soft) } .card .row:last-child { border-bottom:none }
+tr.trap td:first-child { box-shadow:inset 3px 0 0 var(--offblack) }
+.filters { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap }
+.filters button { border:1px solid var(--ash); background:var(--parchment); color:var(--graphite); padding:6px 14px; border-radius:9999px; font:inherit; font-size:12px; text-transform:uppercase; letter-spacing:-.033em; cursor:pointer }
+.filters button.on { background:var(--offblack); color:var(--parchment); border-color:var(--offblack) }
+.gate { border:1px solid var(--ash); border-radius:24px; background:var(--paper); margin:8px 0; overflow:hidden }
+.gate.failed_apply, .gate.failed_postcondition { border-color:var(--coral) } .gate.needs_approval, .gate.blocked_precondition { border-color:var(--gold) }
+.gate summary { list-style:none; cursor:pointer; padding:12px 18px; display:flex; gap:12px; align-items:center; flex-wrap:wrap }
 .gate summary::-webkit-details-marker { display:none }
-.gate summary .n { color:var(--dim); font-size:11px; min-width:44px }
-.gate summary .name { font-weight:600 }
-.gate summary .diff { color:var(--muted); flex:1; min-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
-.gate .body { padding:2px 14px 12px 70px; display:grid; grid-template-columns:130px 1fr; gap:4px 12px; font-size:12px; border-top:1px dashed var(--line); margin-top:2px; padding-top:10px }
-.gate .body .k { color:var(--accent); text-transform:uppercase; letter-spacing:.06em; font-size:10px; padding-top:2px }
-.gate .calls { grid-column:1 / -1; margin-top:8px; border-top:1px dashed var(--line); padding-top:8px }
-.gate .calls div { font-size:11.5px; color:var(--muted) }
-.gate .calls .err { color:var(--fail) }
-.skipped { padding:6px 14px 6px 17px; color:var(--muted); font-size:12px; border-left:3px solid var(--line-hi); margin:4px 0; background:var(--panel) }
-.findings { display:flex; flex-direction:column; gap:6px }
-.finding { display:flex; gap:12px; align-items:baseline; background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--fail); padding:8px 12px; font-size:12.5px }
-.finding .n { color:var(--dim); font-size:11px } .finding .n a { color:var(--dim) }
-.summary p { margin:6px 0; padding:9px 14px; background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--pass) }
-.summary p.dropped { text-decoration:line-through; color:var(--muted); border-left-color:var(--fail) } .summary p.dropped small { text-decoration:none; display:block; color:var(--fail); margin-top:4px }
-.summary a, a { color:var(--accent); text-decoration:none }
-.undo li { font-size:12px; margin:4px 0 } .undo .no { color:var(--warn) }
-.empty { color:var(--dim); font-style:italic; padding:8px 0 }
-.live { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; margin-top:8px } .live b.on { color:var(--pass); animation:pulse 1.6s infinite }
-.foot { margin-top:48px; color:var(--dim); font-size:11.5px; border-top:1px solid var(--line); padding-top:14px }
-:target { outline:2px solid var(--accent); outline-offset:2px }
-@media (max-width:800px) { .phases { grid-template-columns:repeat(3,1fr) } .gate .body { grid-template-columns:1fr; padding-left:14px } .brand { flex-direction:column; align-items:flex-start } .brand .tag { text-align:left } }
+.gate summary .n { color:var(--smoke); font-size:12px; min-width:44px }
+.gate summary .name { font-weight:500 }
+.gate summary .diff { color:var(--graphite); flex:1; min-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12.5px }
+.gate .body { padding:12px 18px 16px 74px; display:grid; grid-template-columns:140px 1fr; gap:6px 12px; font-size:12.5px; border-top:1px solid var(--ash-soft) }
+.gate .body .k { color:var(--smoke); text-transform:uppercase; letter-spacing:-.033em; font-size:11px; padding-top:2px }
+.gate .calls { grid-column:1 / -1; margin-top:8px; border-top:1px solid var(--ash-soft); padding-top:8px }
+.gate .calls div { font-size:12px; color:var(--graphite) } .gate .calls .err { color:var(--crimson) }
+.skipped { padding:8px 18px; color:var(--smoke); font-size:12.5px; border:1px dashed var(--ash); border-radius:9999px; margin:6px 0 }
+.findings { display:flex; flex-direction:column; gap:8px }
+.finding { display:flex; gap:12px; align-items:baseline; border:1px solid var(--ash); border-radius:9999px; padding:10px 18px; font-size:13px; background:var(--parchment) }
+.finding .n { color:var(--smoke); font-size:12px }
+.summary p { margin:8px 0; padding:14px 20px; border:1px solid var(--ash); border-radius:24px; background:var(--paper); font-family:var(--serif); font-size:18px; line-height:1.35 }
+.summary p.dropped { text-decoration:line-through; color:var(--smoke) } .summary p.dropped small { text-decoration:none; display:block; font-family:var(--mono); font-size:12px; color:var(--crimson); margin-top:6px }
+.summary a { color:var(--lake) }
+.undo { list-style:none; padding:0; margin:0 } .undo li { font-size:12.5px; padding:8px 0; border-bottom:1px solid var(--ash-soft) } .undo li a { color:var(--lake) } .undo .no { color:var(--crimson) }
+.empty { color:var(--smoke); font-style:italic; padding:8px 0 }
+.foot { margin-top:64px; color:var(--smoke); font-size:12px; border-top:1px solid var(--ash); padding-top:16px }
+:target { outline:2px solid var(--lake); outline-offset:3px; border-radius:24px }
+@media (max-width:820px) { .phases { grid-template-columns:repeat(2,1fr) } .gate .body { grid-template-columns:1fr; padding-left:18px } }
 """
 
 JS = r"""
 const $ = (s, el=document) => el.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const pill = (t, cls) => `<span class="pill ${esc(cls||t)}">${esc(t)}</span>`;
+const pill = (t, cls) => `<span class="tag ${esc(cls||t)}">${esc(t)}</span>`;
 const TRAPS = ['drive:folder:billing-runbooks','github:deploy_key:dmehta-laptop','slack:user:slack_account','drive:file:IT Offboarding Notes','slack:channel_member:#deploys','github:repo_collaborator:acme/legacy-billing'];
 let FILTER = 'all';
 
@@ -157,14 +117,14 @@ function render(steps){
   const stage = (k,v) => v===undefined||v===null ? '' : `<div class="k">${k}</div><div>${v}</div>`;
   const gateHtml = g => { const s = g.result?g.result.status:'running'; const calls = steps.filter(c=>c.parent===g.step&&c.kind==='tool_call');
     const undo = g.undo||{};
-    return `<details class="gate ${esc(s)}" id="s${g.step}" ${/^failed|needs_approval/.test(s)?'open':''}><summary><span class="n">s${g.step}</span><span class="name">${esc(g.name)}</span>${pill(s)}<span class="pill">${esc(g.risk)}</span><span class="diff">${esc(g.dry_run||'')}</span></summary>
+    return `<details class="gate ${esc(s)}" id="s${g.step}" ${/^failed|needs_approval/.test(s)?'open':''}><summary><span class="n">s${g.step}</span><span class="name">${esc(g.name)}</span>${pill(s)}${pill(g.risk)}<span class="diff">${esc(g.dry_run||'')}</span></summary>
       <div class="body">
         ${stage('1 precondition', g.precondition?`${g.precondition.ok?'ok':'false'} <span class="muted mono">${esc(JSON.stringify(g.precondition.value))}</span>`:undefined)}
         ${stage('2 diff', g.dry_run?`<span class="diff">${esc(g.dry_run)}</span>`:undefined)}
         ${stage('3 approval', g.approval?`${g.approval.granted?'granted':'not granted'} <span class="muted mono">${esc(g.approval.key)}${g.approval.strict?' · strict':''}</span>`:undefined)}
         ${stage('4 apply', g.result?(g.error?`<span class="err mono">${esc(g.error)}</span>`:(['applied','failed_postcondition'].includes(s)?'called':'not called')):undefined)}
         ${stage('5 read-back', g.postcondition?`${g.postcondition.ok?'confirmed':'<b>not confirmed</b>'} <span class="muted">after ${g.postcondition.attempts} read${g.postcondition.attempts>1?'s':''}</span>${g.failure_class?' '+pill(g.failure_class):''}`:undefined)}
-        ${stage('undo', undo.op?`<span class="mono">${esc(undo.op)} ${esc(JSON.stringify(undo.args))}</span> ${undo.supported===false?'<span class="pill needs_human">not supported</span> <span class="muted">'+esc(undo.note||'')+'</span>':''}`:undefined)}
+        ${stage('undo', undo.op?`<span class="mono">${esc(undo.op)} ${esc(JSON.stringify(undo.args))}</span> ${undo.supported===false?'<span class="tag needs_human">not supported</span> <span class="muted">'+esc(undo.note||'')+'</span>':''}`:undefined)}
         ${stage('note', g.note)}
         ${calls.length?`<div class="calls">${calls.map(c=>`<div class="${c.error?'err':''}">s${c.step} ${esc(c.name)} attempt ${c.args.attempt} ${esc(JSON.stringify(Object.fromEntries(Object.entries(c.args).filter(([k])=>!['app','attempt'].includes(k)))))}${c.error?' → '+esc(c.error):''}</div>`).join('')}</div>`:''}
       </div></details>`; };
@@ -191,19 +151,21 @@ function render(steps){
 async function poll(){
   try { const r = await fetch('/trace.jsonl?ts='+Date.now(), {cache:'no-store'}); const text = await r.text(); const steps = parseJsonl(text);
     if (text !== window.__last) { window.__last = text; render(steps); }
-    $('#live').innerHTML = `<b class="on">● live</b> ${steps.length} steps · polling ${esc(r.headers.get('x-trace-path')||'')}`;
-  } catch(e) { $('#live').innerHTML = `<b>○ waiting for server</b>`; }
+    $('#live').innerHTML = `<span class="pulse"></span> live · ${steps.length} steps · ${esc(r.headers.get('x-trace-path')||'')}`;
+  } catch(e) { $('#live').innerHTML = `waiting for server`; }
   setTimeout(poll, 500);
 }
 if (window.__TRACE__) { render(parseJsonl(window.__TRACE__)); } else { poll(); }
 """
 
 BODY = """
-<div class="wrap">
-  <div class="brand">
-    <div class="word px">Offboard<small>revoke · prove · undo — one trace, read live</small></div>
-    <div class="tag px"><b>run console</b>GitHub · Slack · Drive · Sheets<br>every write through the gate</div>
-  </div>
+<div class="wrap console">
+  <nav class="nav">
+    <a class="brand" href="/"><i></i>Offboard</a>
+    <div class="links"><a href="/#how">How it works</a><a href="/#traps">Traps</a><a href="/#run">Run</a></div>
+    <div class="actions">{links}<a class="btn small" href="/">Start over</a></div>
+  </nav>
+  <p class="eyebrow">Run console — one trace, read live</p>
   <div class="head" id="head"></div>
   <div class="live" id="live"></div>
   <div class="counts" id="counts"></div>
@@ -214,7 +176,7 @@ BODY = """
   <h2>Findings</h2><div id="findings"></div>
   <h2>Summary posted</h2><div id="summary"></div>
   <h2>Undo records</h2><div id="undo"></div>
-  <p class="foot">Every element on this page is a query over the trace file. Nothing is written from here. {links}</p>
+  <p class="foot">Every element on this page is a query over the trace file. Nothing is written from here.</p>
 </div>
 """
 
@@ -225,8 +187,8 @@ def page(trace_text: Optional[str], title: str, links: str = "") -> str:
         embedded = "<script>window.__TRACE__ = " + json.dumps(trace_text) + ";</script>"
     return (
         "<!doctype html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>"
-        "<link rel='preconnect' href='https://fonts.googleapis.com'><link rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Press+Start+2P&family=JetBrains+Mono:wght@400;500;600;700&display=swap'>"
-        f"<title>{title}</title><style>{CSS}</style></head><body>"
+        + FONTS
+        + f"<title>{title}</title><style>{CSS}</style></head><body>"
         + BODY.replace("{links}", links)
         + embedded
         + f"<script>{JS}</script></body></html>"
@@ -236,14 +198,14 @@ def page(trace_text: Optional[str], title: str, links: str = "") -> str:
 def export(trace_path: str, out: str, scorecard: Optional[str] = None) -> str:
     with open(trace_path, encoding="utf-8") as fh:
         text = fh.read()
-    links = f'<a href="{scorecard}">Scorecard</a>' if scorecard else ""
+    links = f'<a class="btn small black" href="{scorecard}">Scorecard</a>' if scorecard else ""
     with open(out, "w", encoding="utf-8") as fh:
         fh.write(page(text, f"Offboard · {os.path.basename(trace_path)}", links))
     return out
 
 
 def serve(trace_path: str, port: int, scorecard: Optional[str] = None) -> None:
-    links = f'<a href="{scorecard}">Scorecard</a>' if scorecard else ""
+    links = f'<a class="btn small black" href="{scorecard}">Scorecard</a>' if scorecard else ""
     html = page(None, "Offboard · run console", links).encode("utf-8")
 
     class Handler(BaseHTTPRequestHandler):
