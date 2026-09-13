@@ -7,3 +7,4 @@ scorecard.html
 console.html
 plan.json
 .claude/
+evals/results/compare-*.json

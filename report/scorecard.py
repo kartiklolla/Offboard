@@ -142,13 +142,13 @@ def limitation_text(path: str) -> Optional[str]:
         return None
     with open(path, encoding="utf-8") as fh:
         for line in fh:
-            if LIMITATION_KEY in line:
+            if line.lstrip().startswith("- " + LIMITATION_KEY):
                 text = line.split(LIMITATION_KEY, 1)[1].strip(" -\t\n")
                 return text or None
     return None
 
 
-def header(results: dict, baseline: Optional[dict], demo: Optional[Trace]) -> str:
+def header(results: dict, baseline: Optional[dict], demo: Optional[Trace], mutants: Optional[dict] = None) -> str:
     totals = results["totals"]
     stats = [("scenarios", totals["scenarios"]), ("passing", f"{totals['passed']}/{totals['scenarios']}"),
              ("pass rate", _pct(totals["rate"]))]
@@ -157,6 +157,8 @@ def header(results: dict, baseline: Optional[dict], demo: Optional[Trace]) -> st
     if results.get("matrix"):
         passed = sum(1 for r in results["matrix"] if r["passed"])
         stats.append(("fault matrix", f"{passed}/{len(results['matrix'])}"))
+    if mutants:
+        stats.append(("mutants caught", f"{mutants['totals']['caught']}/{mutants['totals']['mutants']}"))
     if demo:
         writes = sum(1 for s in demo.steps if s["kind"] == "tool_call" and s.get("risk") != "read")
         stats.append(("writes in the demo", writes))
@@ -269,6 +271,44 @@ def matrix_grid(results: dict) -> str:
         "<div class='grid'><table><thead><tr><th>write op</th>" + head + "</tr></thead><tbody>"
         + "".join(body) + "</tbody></table></div>"
     )
+
+
+def mutation_grid(mutants: Optional[dict]) -> str:
+    if not mutants:
+        return ('<p class="muted">No mutation results were supplied. Run <code>python -m evals.mutants</code> and pass '
+                "<code>--mutants evals/results/mutants.json</code>.</p>")
+    rows = mutants["mutants"]
+    classes = [c for c in ORDER if any(c in r["killed_by_class"] for r in rows)]
+    head = "".join(f"<th class='num'>{esc(c)}</th>" for c in classes)
+    body = []
+    for row in rows:
+        expected = set(row["expected_class"].split())
+        tds = []
+        for cls in classes:
+            n = row["killed_by_class"].get(cls, 0)
+            total = row["by_class"].get(cls, {}).get("total", 0)
+            if not total:
+                tds.append('<td class="cell na">—</td>')
+            elif n and cls in expected:
+                tds.append(f'<td class="cell ok" title="{n} of {total} {cls} scenarios went red">{n}/{total}</td>')
+            elif n:
+                tds.append(f'<td class="cell" title="{n} of {total} {cls} scenarios went red">{n}/{total}</td>')
+            elif cls in expected:
+                tds.append(f'<td class="cell no" title="the class that claims to prove this saw nothing">0/{total}</td>')
+            else:
+                tds.append(f'<td class="cell na">0/{total}</td>')
+        verdict = ('<span class="tag pass">caught</span>' if row["caught_by_expected_class"]
+                   else '<span class="tag warn">caught elsewhere</span>' if row["caught"]
+                   else '<span class="tag fail">survived</span>')
+        body.append(f"<tr><td>{verdict} <code>{esc(row['id'])}</code><br>"
+                    f"<span class='muted'>removes {esc(row['removes'])}</span></td>{''.join(tds)}</tr>")
+    totals = mutants["totals"]
+    intro = (f"<p class='muted'>Each row removes one defence from the agent at run time, then runs all "
+             f"{mutants['scenarios']} scenarios. A cell is how many scenarios of that class went red. "
+             f"{totals['caught']} of {totals['mutants']} mutants were caught, {totals['caught_by_expected_class']} "
+             f"by the class that claims to prove it. A red cell is a defence the suite would not notice losing.</p>")
+    return intro + ("<div class='grid'><table><thead><tr><th>mutant</th>" + head + "</tr></thead><tbody>"
+                    + "".join(body) + "</tbody></table></div>")
 
 
 def cost_panel(demo: Optional[Trace], results: dict) -> str:
@@ -411,11 +451,12 @@ def limitation_box(text: Optional[str]) -> str:
 
 
 def render(results: dict, baseline: Optional[dict], demo: Optional[Trace],
-           compare: list[Trace], limitation: Optional[str]) -> str:
+           compare: list[Trace], limitation: Optional[str], mutants: Optional[dict] = None) -> str:
     sections = [
         ("Pass rate by failure class", per_class(results, baseline) + movement(results, baseline)),
         ("Every scenario, and what it asserted", scenario_rows(results, baseline)),
         ("Fault matrix", matrix_grid(results)),
+        ("Would the suite notice a regression?", mutation_grid(mutants)),
         ("The demo run, step by step", trace_explorer(demo)),
         ("The same run under three models", model_panel(compare)),
         ("Cost and budget", cost_panel(demo, results)),
@@ -433,7 +474,7 @@ def render(results: dict, baseline: Optional[dict], demo: Optional[Trace],
         "<h1>Offboard reliability scorecard</h1>"
         f"<p class='sub'>Run <code>{label}</code> against the <code>{mode}</code> drivers, {generated}. "
         "Every number on this page is read from a trace file, not from the agent's own account of itself.</p>"
-        f"{header(results, baseline, demo)}{body}"
+        f"{header(results, baseline, demo, mutants)}{body}"
         f"<script>{JS}</script></div></body></html>"
     )
 
@@ -444,6 +485,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument("--baseline")
     parser.add_argument("--trace")
     parser.add_argument("--compare", nargs="*", default=[])
+    parser.add_argument("--mutants")
     parser.add_argument("--decisions", default=os.path.join(ROOT, "DECISIONS.md"))
     parser.add_argument("--out", default=os.path.join(ROOT, "scorecard.html"))
     args = parser.parse_args(argv)
@@ -456,7 +498,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     demo = Trace("demo", args.trace, load_trace(args.trace)) if args.trace and os.path.exists(args.trace) else None
     compare = [Trace(_model_label(path), path, load_trace(path)) for path in args.compare if os.path.exists(path)]
 
-    out = render(results, baseline, demo, compare, limitation_text(args.decisions))
+    mutants = load_results(args.mutants) if args.mutants and os.path.exists(args.mutants) else None
+    out = render(results, baseline, demo, compare, limitation_text(args.decisions), mutants)
     os.makedirs(os.path.dirname(os.path.abspath(args.out)) or ".", exist_ok=True)
     with open(args.out, "w", encoding="utf-8") as fh:
         fh.write(out)

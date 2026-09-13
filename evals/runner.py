@@ -238,10 +238,7 @@ def score(steps: list[dict], state: TwinState, scenario: Scenario) -> list[str]:
         for sheet in state.data.get("sheets", {}).values():
             rows.extend(sheet.get("rows", []))
         logged = {str(row[1]) for row in rows if len(row) > 1}
-        expected_rows = {
-            str(s["step"]) for s in gates
-            if _verb(s) in WRITE_VERBS and _status(s) in ("applied", "failed_postcondition", "failed_apply")
-        }
+        expected_rows = {str(s["step"]) for s in gates if _verb(s) in WRITE_VERBS}
         missing = expected_rows - logged
         unknown = logged - {str(s["step"]) for s in steps}
         if not rows:
@@ -405,9 +402,13 @@ def run_all(
     only: Optional[str] = None,
     matrix: bool = False,
     include_undo_ops: bool = False,
+    model: Optional[str] = None,
     on_result: Optional[Callable[[ScenarioResult], None]] = None,
 ) -> dict:
     scenarios = [s for s in schema.load_all() if only is None or s.id == only]
+    if model:
+        for s in scenarios:
+            s.model = model
     generated: list[Scenario] = []
     if matrix:
         from evals.matrix import generate
@@ -464,6 +465,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser.add_argument("--label", default="baseline")
     parser.add_argument("--matrix", action="store_true")
     parser.add_argument("--include-undo-ops", action="store_true")
+    parser.add_argument("--model", choices=schema.MODELS, help="override the model named in every scenario")
     args = parser.parse_args(argv)
 
     try:
@@ -473,7 +475,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         return 2
 
     payload = run_all(label=args.label, mode=args.mode, only=args.only, matrix=args.matrix,
-                      include_undo_ops=args.include_undo_ops, on_result=_print)
+                      include_undo_ops=args.include_undo_ops, model=args.model, on_result=_print)
     totals = payload["totals"]
     print(f"\n{totals['passed']}/{totals['scenarios']} scenarios pass ({totals['rate']:.0%})")
     for cls, row in payload["by_class"].items():

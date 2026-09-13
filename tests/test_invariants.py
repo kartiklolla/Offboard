@@ -56,14 +56,26 @@ class RunInvariants(unittest.TestCase):
             self.assertIsNotNone(node, f"{call['name']} at s{call['step']} ran outside the gate")
 
     def test_no_destructive_call_against_an_escalated_item(self) -> None:
-        state = __import__("twins.state", fromlist=["TwinState"]).TwinState.seed("acme")
+        from adapters.gdrive import is_external
+        from twins.state import TwinState
+
+        state = TwinState.seed("acme")
         alias = _aliases(state)
         spared = [
-            s["name"].split(":", 2)[2]
+            s["name"].split(":", 2)
             for s in self.steps
             if s["kind"] == "disposition" and (s.get("result") or {}).get("disposition") in ("escalate", "needs_human")
         ]
-        for resource in spared:
+        for _app, kind, resource in spared:
+            if kind == "external_share":
+                external = {
+                    p["id"] for f in state.data["drive"]["files"] if f["name"] == resource
+                    for p in f["permissions"] if is_external(p["email"])
+                }
+                hits = [c for c in self.calls if c["name"] == "remove_permission"
+                        and str((c.get("args") or {}).get("permission_id")) in external]
+                self.assertEqual(hits, [], f"the external share {sorted(external)} on {resource} was removed")
+                continue
             for op in DESTRUCTIVE_OPS:
                 hits = [c for c in self.calls if _call_matches(c, op, resource, alias)]
                 self.assertEqual(hits, [], f"{op} was called against the spared resource {resource}")

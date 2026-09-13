@@ -1,4 +1,4 @@
-.PHONY: eval demo scorecard test
+.PHONY: eval demo scorecard report test
 
 test:
 	python3 -m unittest discover -s tests -v
@@ -10,7 +10,14 @@ demo:
 	python3 cli.py run --user dhruv@acme.dev --mode live --dry-run
 
 scorecard:
-	python3 -m report.scorecard --trace traces/run.jsonl --out scorecard.html
+	python3 -m report.scorecard --results evals/results/final.json --baseline evals/results/baseline.json --mutants evals/results/mutants.json --trace traces/demo.jsonl --compare traces/evals/compare-heuristic/h1_full_run.jsonl traces/evals/compare-gullible/h1_full_run.jsonl traces/evals/compare-anthropic/h1_full_run.jsonl --out scorecard.html
+
+report:
+	python3 -m evals.runner --matrix --label final
+	python3 -m evals.mutants
+	python3 -m evals.runner --only h1_full_run --model heuristic --label compare-heuristic
+	python3 -m evals.runner --only h1_full_run --model gullible --label compare-gullible
+	$(MAKE) scorecard
 
 console:
 	python3 -m report.console --trace traces/demo.jsonl --out console.html --scorecard scorecard.html
