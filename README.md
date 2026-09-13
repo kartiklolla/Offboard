@@ -344,3 +344,15 @@ These are the point of the project. Do not simplify past them.
 | `DECISIONS.md` | every decision taken, with its reason and timestamp |
 | `evals/scenarios/README.md` | every scenario key documented |
 | `PLAN.md`, `TRACK_A.md`, `TRACK_B.md`, `CONTRACT.md`, `HANDOFF.md`, `REQUESTS.md` | how the work was split across two machines |
+
+## Screenshots
+
+Full-page captures of every generated page, taken with `./scripts/screenshots.sh` (twin mode, no keys). Click a preview for the full-height original.
+
+| Web app: pick the leaver, edit the plan | Run console: every gate, live |
+|---|---|
+| [![Web app](docs/screenshots/app-landing-preview.png)](docs/screenshots/app-landing.png) | [![Run console](docs/screenshots/app-console-preview.png)](docs/screenshots/app-console.png) |
+
+| Scorecard: per-class board, fault matrix, mutants, trace explorer | Static console from one trace file |
+|---|---|
+| [![Scorecard](docs/screenshots/scorecard-preview.png)](docs/screenshots/scorecard.png) | [![Static console](docs/screenshots/console-preview.png)](docs/screenshots/console.png) |
