@@ -7,6 +7,7 @@ import urllib.request
 from abc import ABC, abstractmethod
 from typing import Any, Optional
 
+from adapters.github import LiveResponse
 from adapters.base import AccessItem, DriverBase, Identity, Page, TransientError, slice_page
 from twins.driver import TwinDriver
 
@@ -75,7 +76,7 @@ class SlackDriver(ABC):
                     "slack", "channel_member", channel["id"], "#" + channel["name"], "member", True,
                     shared_with=sorted(m for m in members if m != uid),
                     content=channel.get("topic"), content_field="topic",
-                    hints={"is_private": channel.get("is_private", False)},
+                    hints={"is_private": channel.get("is_private", False), "is_general": channel.get("is_general", False)},
                 )
             )
         return items
@@ -168,7 +169,7 @@ class SlackLive(SlackDriver, DriverBase):
         )
         try:
             with urllib.request.urlopen(req, timeout=20) as resp:
-                return json.loads(resp.read())
+                return LiveResponse(json.loads(resp.read()))
         except urllib.error.HTTPError as exc:
             if exc.code in (429, 500, 502, 503):
                 raise TransientError(exc.code, exc.reason) from exc
@@ -182,6 +183,8 @@ class SlackLive(SlackDriver, DriverBase):
                 raise TransientError(429 if err == "ratelimited" else 500, err)
             if err in ("not_in_channel", "user_not_found", "already_in_channel", "message_not_found"):
                 return payload
+            if err in ("cant_kick_from_general", "restricted_action", "missing_scope", "not_allowed_token_type"):
+                raise PermissionError(f"slack {method}: {err}")
             raise RuntimeError(f"slack {method}: {err}")
         return payload
 
@@ -229,6 +232,7 @@ class SlackLive(SlackDriver, DriverBase):
     def list_channels(self, page: int = 1) -> Page:
         return self._paged("list_channels", {}, "conversations.list", {"types": "public_channel,private_channel", "exclude_archived": "true"},
                            "channels", page, lambda c: {"id": c["id"], "name": c["name"], "is_private": c.get("is_private", False),
+                                                       "is_general": c.get("is_general", False),
                                                        "topic": (c.get("topic") or {}).get("value", "")})
 
     def list_channel_members(self, channel_id: str, page: int = 1) -> Page:

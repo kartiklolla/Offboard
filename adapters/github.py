@@ -175,6 +175,17 @@ class GitHubTwin(GitHubDriver, TwinDriver):
         return self.state._github_access(actor, resource_name)
 
 
+class LiveResponse(dict):
+    def items(self) -> Any:  # type: ignore[override]
+        summary: dict[str, Any] = {}
+        for key, value in dict.items(self):
+            if isinstance(value, (list, dict)):
+                summary[f"{key}_count"] = len(value)
+            elif isinstance(value, (str, int, float, bool)) or value is None:
+                summary[key] = value if not isinstance(value, str) or len(value) <= 80 else value[:77] + "..."
+        return summary.items()
+
+
 class GitHubLive(GitHubDriver, DriverBase):
     def __init__(self, token: Optional[str] = None, org: Optional[str] = None, cassette: Any = None, **kw: Any) -> None:
         DriverBase.__init__(self, **kw)
@@ -200,12 +211,12 @@ class GitHubLive(GitHubDriver, DriverBase):
         try:
             with urllib.request.urlopen(req, timeout=20) as resp:
                 raw = resp.read()
-                return {"status": resp.status, "json": json.loads(raw) if raw else None, "link": resp.headers.get("Link", "")}
+                return LiveResponse(status=resp.status, json=json.loads(raw) if raw else None, link=resp.headers.get("Link", ""))
         except urllib.error.HTTPError as exc:
             if exc.code in (429, 500, 502, 503) or (exc.code == 403 and "rate limit" in exc.read().decode(errors="ignore").lower()):
                 raise TransientError(exc.code, exc.reason) from exc
             if exc.code == 404 and method == "DELETE":
-                return {"status": 404, "json": None, "link": ""}
+                return LiveResponse(status=404, json=None, link="")
             raise
 
     def _api(self, op: str, args: dict, method: str, path: str, body: Optional[dict] = None, params: Optional[dict] = None) -> Any:

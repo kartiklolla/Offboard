@@ -10,3 +10,4 @@ plan.json
 evals/results/compare-*.json
 evals/results/latest.json
 .venv/
+hr.json
