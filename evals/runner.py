@@ -397,7 +397,7 @@ def _rates(results: list[ScenarioResult]) -> dict[str, dict]:
 
 
 def run_all(
-    label: str = "baseline",
+    label: str = "latest",
     mode: str = "twin",
     only: Optional[str] = None,
     matrix: bool = False,
@@ -462,7 +462,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(prog="evals.runner")
     parser.add_argument("--mode", default="twin", choices=("twin", "live"))
     parser.add_argument("--only")
-    parser.add_argument("--label", default="baseline")
+    parser.add_argument("--label", default="latest", help="results file name under evals/results; baseline and final are the committed runs")
     parser.add_argument("--matrix", action="store_true")
     parser.add_argument("--include-undo-ops", action="store_true")
     parser.add_argument("--model", choices=schema.MODELS, help="override the model named in every scenario")
