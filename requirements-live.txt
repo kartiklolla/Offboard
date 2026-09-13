@@ -1,0 +1,10 @@
+# Only needed for LIVE mode against real Google APIs.
+# The twin path -- all 146 tests, 29 scenarios, 27 matrix cells, 12 mutants,
+# the scorecard, the console and the landing app -- runs on the standard
+# library alone. Do not install these to run the eval suite.
+
+google-api-python-client>=2.100    # live Drive and Sheets drivers
+google-auth>=2.30                  # OAuth refresh-token credentials
+
+# Only needed for --model anthropic. The demo runs on --model heuristic.
+# anthropic>=0.40
