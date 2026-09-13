@@ -45,4 +45,4 @@ Everything under `twins/`: the fixture, the fault injector and the four twin dri
 
 ## Numbers
 
-122 unit tests. 28 hand-written scenarios, 27 matrix cells, 11 mutants. A clean twin run: 21 access items, 25 gated writes, 2 escalations, 3 injection findings, 254 trace steps, 6 model calls, under 50 ms. Zero third-party dependencies on the twin path; `anthropic` for the demo model, `google-api-python-client` only for live Google.
+139 unit tests. 29 hand-written scenarios, 27 matrix cells, 12 mutants. A clean twin run: 21 access items, 25 gated writes, 2 escalations, 3 injection findings, 254 trace steps, 6 model calls, under 50 ms. Zero third-party dependencies on the twin path; `anthropic` for the demo model, `google-api-python-client` only for live Google.
