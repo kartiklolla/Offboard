@@ -31,10 +31,14 @@ section h2 { max-width:24ch }
 .flow { border:1px solid var(--ash); border-radius:40px; padding:32px; background:var(--paper); overflow:hidden }
 .flow svg { width:100%; height:auto; display:block; font-family:var(--mono) }
 .node { fill:var(--parchment); stroke:var(--ash) } .node.hub { fill:var(--periwinkle); stroke:none } .node.gate { fill:var(--offblack); stroke:none }
-.node-t { font-size:13px; text-transform:uppercase; letter-spacing:-.3px; fill:var(--offblack) } .node-t.inv { fill:var(--parchment) }
-.node-s { font-size:11px; fill:var(--smoke) } .node-s.inv { fill:var(--ash) }
+.node-t { font-size:18px; text-transform:uppercase; letter-spacing:-.4px; fill:var(--offblack) } .node-t.inv { fill:var(--parchment) }
+.node-s { font-size:13px; fill:var(--graphite) } .node-s.inv { fill:var(--ash) }
+.node-g rect { transition:fill .4s ease, filter .4s ease, stroke .4s ease }
+.node-g.lit rect { fill:var(--periwinkle); stroke:transparent; filter:drop-shadow(-10px 0 18px var(--g1, var(--coral))) drop-shadow(10px 0 18px var(--g2, var(--sky))) }
+.node-g.lit rect.hub { fill:var(--sky) } .node-g.lit rect.gate { fill:var(--offblack); filter:drop-shadow(0 0 22px var(--gold)) }
+.node-g.lit .node-t { font-weight:500 }
 .wire { fill:none; stroke:var(--ash); stroke-width:1.2 }
-.flow-dot { fill:var(--lake) }
+.flow-dot { fill:var(--lake); opacity:.9 }
 .grid { display:grid; gap:12px } .grid.c2 { grid-template-columns:repeat(2,1fr) } .grid.c4 { grid-template-columns:repeat(4,1fr) }
 .app h3 { display:flex; align-items:center; gap:12px } .app h3 svg { width:28px; height:28px; stroke:var(--offblack); fill:none; stroke-width:1.5 }
 .app .steps { margin:18px 0 0; padding:0; list-style:none; display:flex; flex-direction:column; gap:8px }
@@ -69,29 +73,67 @@ ICONS = {
 }
 
 
+APP_NODES = [("github", "GitHub", "org · repos · deploy keys"), ("slack", "Slack", "account · channels"), ("drive", "Drive", "owned files · shares"), ("sheets", "Sheets", "evidence log")]
+CHAIN_NODES = [("resolve", "Resolve identity", "two signals or abstain", "hub"), ("inventory", "Inventory", "deterministic, paginated", ""),
+               ("classify", "Classify", "model proposes, policy decides", ""), ("gate", "Gate", "five stages, every write", "gate"), ("report", "Report", "evidence + cited summary", "")]
+
+
 def flow_svg() -> str:
-    def node(x: int, y: int, w: int, title: str, sub: str, cls: str = "") -> str:
+    aw, ah, ay = 290, 68, 24
+    cw, ch, cy, gap = 280, 68, 300, 12
+    app_x = [70 + i * 340 for i in range(4)]
+    chain_x = [20 + i * (cw + gap) for i in range(5)]
+    rx0 = chain_x[0] + cw / 2
+    parts = []
+    for (key, _, _), x in zip(APP_NODES, app_x):
+        cx = x + aw / 2
+        parts.append(f"<path id='route-{key}' class='wire' d='M{cx} {ay+ah} C {cx} {ay+ah+110}, {rx0} {cy-120}, {rx0} {cy}'/>")
+    parts.append(f"<path id='route-chain' class='wire' d='M{chain_x[0]+cw} {cy+ch/2} L {chain_x[-1]} {cy+ch/2}'/>")
+    parts.append("<circle id='flow-dot' class='flow-dot' r='7' cx='-20' cy='-20'/>")
+
+    def node(x: float, y: float, w: float, h: float, key: str, title: str, sub: str, cls: str = "") -> str:
         inv = " inv" if cls == "gate" else ""
-        return (f"<g class='node-g'><rect class='node {cls}' x='{x}' y='{y}' width='{w}' height='54' rx='27'/>"
-                f"<text class='node-t{inv}' x='{x+22}' y='{y+23}'>{title}</text><text class='node-s{inv}' x='{x+22}' y='{y+42}'>{sub}</text></g>")
-    apps = [("GitHub", "org · repos · deploy keys", 30), ("Slack", "account · channels", 105), ("Drive", "owned files · shares", 180), ("Sheets", "evidence log", 255)]
-    wires = [f"<path class='wire' d='M240 {y+27} C 320 {y+27}, 330 172, 390 172'/>" for _, _, y in apps]
-    nodes = [node(20, y, 220, name, sub) for name, sub, y in apps]
-    chain = [("Resolve identity", "two signals or abstain", "hub"), ("Inventory", "deterministic, paginated", ""), ("Classify", "model proposes, policy decides", ""),
-             ("Gate", "five stages, every write", "gate"), ("Report", "evidence + cited summary", "")]
-    w, gap = 250, 26
-    x = 390
-    for i, (name, sub, cls) in enumerate(chain):
-        nodes.append(node(x, 145, w, name, sub, cls))
-        if i < len(chain) - 1:
-            wires.append(f"<path class='wire' d='M{x+w} 172 L {x+w+gap} 172'/>")
-        x += w + gap
-    total = x - gap + 20
-    path = f"M240 57 C 320 57, 330 172, 390 172 L {x-gap} 172"
-    dot = f"<circle class='flow-dot' r='5'><animateMotion dur='7s' repeatCount='indefinite' path='{path}'/></circle>"
-    caption = f"<text class='node-s' x='{390 + 3*(w+gap)}' y='225'>precondition → diff → approval → apply → read-back</text>"
-    return (f"<svg viewBox='0 0 {total} 320' role='img' aria-label='Offboard pipeline: four apps feed identity resolution, inventory, classification, the gate and the report'>"
-            + "".join(wires) + "".join(nodes) + dot + caption + "</svg>")
+        return (f"<g class='node-g' data-node='{key}'><rect class='node {cls}' x='{x}' y='{y}' width='{w}' height='{h}' rx='{h/2}'/>"
+                f"<text class='node-t{inv}' x='{x+26}' y='{y+29}'>{title}</text><text class='node-s{inv}' x='{x+26}' y='{y+51}'>{sub}</text></g>")
+
+    for (key, title, sub), x in zip(APP_NODES, app_x):
+        parts.append(node(x, ay, aw, ah, key, title, sub))
+    for (key, title, sub, cls), x in zip(CHAIN_NODES, chain_x):
+        parts.append(node(x, cy, cw, ch, key, title, sub, cls))
+    parts.append(f"<text class='node-s' x='{chain_x[3]}' y='{cy+ch+34}'>precondition → diff → approval → apply → read-back</text>")
+    return f"<svg id='flow' viewBox='0 0 {chain_x[-1]+cw+20} 420' role='img' aria-label='Offboard pipeline: four apps feed identity resolution, inventory, classification, the gate and the report'>" + "".join(parts) + "</svg>"
+
+
+FLOW_JS = """
+(function () {
+  const svg = document.getElementById('flow'); if (!svg) return;
+  const dot = svg.querySelector('#flow-dot');
+  const nodes = {}; svg.querySelectorAll('.node-g').forEach(g => nodes[g.dataset.node] = g);
+  const apps = ['github', 'slack', 'drive', 'sheets'];
+  const chain = ['resolve', 'inventory', 'classify', 'gate', 'report'];
+  const chainPath = svg.querySelector('#route-chain');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let lit = null, last = null;
+  function light(key) { if (lit) lit.classList.remove('lit'); lit = key ? nodes[key] : null; if (lit) lit.classList.add('lit'); }
+  function at(path, t) { const p = path.getPointAtLength(path.getTotalLength() * t); dot.setAttribute('cx', p.x); dot.setAttribute('cy', p.y); }
+  const ease = t => t < .5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2) / 2;
+  function travel(path, from, to, ms) { return new Promise(res => { const t0 = performance.now(); function f(now) { const k = Math.min(1, (now - t0) / ms); at(path, from + (to - from) * ease(k)); if (k < 1) requestAnimationFrame(f); else res(); } requestAnimationFrame(f); }); }
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  function nodeCenterT(key) { const r = nodes[key].querySelector('rect'); const cx = +r.getAttribute('x') + (+r.getAttribute('width')) / 2; const L = chainPath.getTotalLength(); const x0 = chainPath.getPointAtLength(0).x; const x1 = chainPath.getPointAtLength(L).x; return Math.max(0, Math.min(1, (cx - x0) / (x1 - x0))); }
+  async function cycle() {
+    let app = apps[Math.floor(Math.random() * apps.length)]; if (app === last) app = apps[(apps.indexOf(app) + 1) % apps.length]; last = app;
+    const route = svg.querySelector('#route-' + app);
+    at(route, 0); light(app); await wait(900);
+    await travel(route, 0, 1, 1500);
+    for (let i = 0; i < chain.length; i++) {
+      const key = chain[i]; light(key);
+      if (i < chain.length - 1) { await wait(800); await travel(chainPath, nodeCenterT(key), nodeCenterT(chain[i + 1]), 1100); }
+    }
+    await wait(1200); light(null); await wait(400); cycle();
+  }
+  if (reduce) { light('gate'); at(chainPath, nodeCenterT('gate')); } else cycle();
+})();
+"""
 
 
 def landing_html(mode: str, model: str, scorecard: Optional[str]) -> str:
@@ -178,6 +220,7 @@ def landing_html(mode: str, model: str, scorecard: Optional[str]) -> str:
 <footer><span>Offboard · Multi-App AI Agent Hackathon, 13 September 2026 · Kartik Lolla, Sanjib Behera</span><span>Twins are a test rig, not a production mirror. Every page reads the same trace file.</span></footer>
 </div>
 <script>
+{FLOW_JS}
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}}[c]));
 let PLAN = null;
