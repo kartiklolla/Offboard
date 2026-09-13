@@ -14,6 +14,7 @@ One line per decision: the option chosen and one sentence why. Both Claude sessi
 | D6 | Authority | model proposes, policy overrides, every override traced | `finding override:<key>` when a class is prevented, `override` event otherwise | default taken, B, 13 Sep 10:45 PT |
 | D7 | Slack without email | abstain for the app | `f1_missing_email_abstains` proves it; run ends `needs_human` | default taken, B, 13 Sep 10:45 PT |
 | D8 | Scenario count | 28 hand-written + fault matrix | 28 + 27 generated, both green on the merged tree | default taken, B, 13 Sep 10:45 PT |
+| D9′ | Live scope, revised | GitHub + Slack live (smoke and dry run passed on the sandbox 13 Sep); real apply waits on the `#general` escalation; Drive stays twin; Sheets live only if time | see B-j and HANDOFF.md Track B handoff | B, 14 Sep 02:00 IST |
 | D9 | Live scope | twins for everything until sandbox facts and `.env` exist; GitHub + Slack live if they arrive before 13:00 PT; Drive and Sheets stay twins | no accounts or tokens exist on either machine at 10:45 PT; a live dry run is a 30-minute job once they do | B, 13 Sep 10:45 PT |
 | D10 | Report cut order | Sheets log, then summary, then live Drive, then report phase | nothing cut so far | default taken, B, 13 Sep 10:45 PT |
 | D11 | Scorecard | static HTML with trace explorer | `report/scorecard.py`, plus A's `report/console.py` for the live view | default taken, B, 13 Sep 10:45 PT |
@@ -36,19 +37,14 @@ One line per decision: the option chosen and one sentence why. Both Claude sessi
 | B-g | Limitation box | read verbatim from the `Limitation text for the scorecard box:` line in this file; if it is blank the scorecard says so in red | the one honest limitation is the Director's sentence to write, not the builder's to invent | 13 Sep 00:20 |
 | B-h | Green baseline | keep it, and answer it with mutation testing: `evals/mutants.py` removes one defence at a time at run time (never editing Track A's files) and shows which scenarios go red | the first merged run was 28/28 and 27/27; the honest reply to "green from the first run reads as easy tests" is to prove the suite would catch each defence being lost, not to manufacture a red board | 13 Sep 10:05 PT |
 | B-i | A 29th scenario after the baseline | `f1_two_qualifying_candidates`: a second Slack account with the target's name and email; both qualify, Slack must abstain | the mutation grid showed each identity rule caught by one scenario only; the baseline file keeps its 28 so the scorecard shows the addition rather than hiding it | 13 Sep 10:30 PT |
+| B-j | Live Google | skip live Drive; live Sheets optional; Drive and trap T1 stay on twins | ownership transfer on consumer Gmail needs the owner's own credentials, so T1 cannot be reproduced with the admin token; D10 puts live Drive third on the cut list; `--apps github,slack[,sheets]` must now be passed explicitly because `GOOGLE_REFRESH_TOKEN` is set | 14 Sep 02:00 IST |
 | B-f | Matrix scope | 9 write ops the twin run actually calls, times 3 modes, 27 generated; `--include-undo-ops` adds the 8 restore-only ops | ops the run never calls would fail on "the fault never fired" and say nothing about the agent | 12 Sep 00:05 |
 
 ## Sandbox facts (Track B fills in)
 
-- GitHub org:
-- Repos:
-- Throwaway collaborator login:
-- Deploy key title referenced from a workflow:
-- Slack team id:
-- Test user id and email:
-- Channel ids:
-- `#it-offboarding` channel id:
-- Evidence sheet id:
+- GitHub org, repos, leaver login, Slack leaver email, evidence sheet id: in `.env` and `hr.json` only (gitignored); the Operator asked that no real account name enter a tracked file. Repos are `billing`, `legacy-billing`, `infra` plus one extra test repo; the deploy key referenced from `.github/workflows/deploy-staging.yml` is titled `<leaver login>-laptop`, the idle one `<leaver login>-old-laptop`.
+- Slack channels seeded: deploys (injected topic), engineering, backend, social, one extra, the general channel, private `it-offboarding` with the bot invited.
+- Google: OAuth client, refresh token and blank sheet exist in `.env` (14 Sep); `google-api-python-client` not installed on the Track B machine.
 - Prerequisites found by `tests/test_live.py` (B, 13 Sep 11:40 PT): the throwaway GitHub account's public profile **name** must equal the HR record name (`Dhruv Mehta`), because the org members endpoint carries no name or email and the driver now fetches each member's profile; without it GitHub has one signal and abstains. The Slack bot needs `channels:read` and `groups:read` on top of PLAN.md's list, or `conversations.list` and `conversations.members` fail with `missing_scope`. Set `SLACK_ENTERPRISE_GRID=1` only on a Grid workspace.
 
 ## Brief facts (Director fills in)
