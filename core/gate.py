@@ -87,10 +87,12 @@ class Gate:
         dry_run: bool = False,
         postcondition_retries: int = 1,
         sleeper: Callable[[float], None] = lambda s: None,
+        strict: bool = False,
     ) -> None:
         self.tracer = tracer
         self.approvals = set(approvals or ())
         self.dry_run = dry_run
+        self.strict = strict
         self.postcondition_retries = postcondition_retries
         self.sleeper = sleeper
         self.results: list[GateResult] = []
@@ -100,9 +102,12 @@ class Gate:
         return [r for r in self.results if r.status == APPLIED]
 
     def approved(self, action: Action) -> bool:
+        tokens = {APPROVE_ALL, action.approval_key, action.verb, action.app, action.hash}
+        if self.strict and action.verb in ("transfer", "revoke"):
+            return bool(self.approvals & tokens)
         if action.risk is not RiskTier.IRREVERSIBLE:
             return True
-        return bool(self.approvals & {APPROVE_ALL, action.approval_key, action.verb, action.app, action.hash})
+        return bool(self.approvals & tokens)
 
     def execute(
         self,
@@ -148,7 +153,7 @@ class Gate:
                 return self._finish(step, result, SKIPPED_DRY_RUN, "dry run; diff recorded, nothing applied")
 
             granted = self.approved(action)
-            step.record(approval={"required": action.risk is RiskTier.IRREVERSIBLE, "granted": granted, "key": action.approval_key})
+            step.record(approval={"required": action.risk is RiskTier.IRREVERSIBLE or (self.strict and action.verb in ("transfer", "revoke")), "granted": granted, "key": action.approval_key, "strict": self.strict})
             if not granted:
                 return self._finish(step, result, NEEDS_APPROVAL, "irreversible action without an approval token")
 

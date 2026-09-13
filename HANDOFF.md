@@ -67,7 +67,23 @@ Thin, untested against real APIs. GitHub and Slack use `urllib` only; Drive and 
 
 ## Track A status
 
-(not started)
+A1–A5, A7, A8 and A10 are built; A6 had nothing to fix (baseline was green); A9 (semantic cross-check) not started. 62 Track A tests in `tests/test_gate.py`, `test_model.py`, `test_policy.py`, `test_loop.py`, `test_cli.py`.
+
+**`core/gate.py`** Five stages, six statuses, one postcondition retry (D2). Never leaves a gate step without a status: exceptions in precondition/describe become `blocked_precondition`, in postcondition become `failed_postcondition` (F5, "applied but unverified"). Checks the write budget *before* apply. `strict=True` makes every `transfer`/`revoke` need an approval token, reversible ones included; used by `offboard apply`. Tokens: `*`, app, verb, `app:op:resource`, or the action hash (`Action.hash`, sha of app+op+args+resource+verb, also in the gate step's `args.hash`).
+
+**`agent/policy.py`** Two-signal identity (`email`, `name`, `handle`; Drive email counts double; two qualifying candidates is `needs_human`). Rules R1–R8; `R4` escalates when there is no manager. `detect_injection` needs one agent-addressed pattern or two weak hits; only logs. Order phases: transfer → reversible revoke → irreversible revoke → account-level (`deactivate_user`, `remove_org_member`) → log → notify. `verify_summary`: `[sN]` must exist; completion verbs need an applied gate step. Overrides that prevent a taxonomy class are `finding override:<key>`; a merely cautious model is an `override` event, not a finding.
+
+**`agent/loop.py`** Six phases, contract events. First `failed_apply` *or* `failed_postcondition` on a write stops further writes, emits `finding dirty_run` (F4) with every applied undo record, still runs the report phase. Dependent `revoke:<file>` is skipped when its `transfer:<file>` did not apply; in dry-run it records `precondition: "assumed: runs after …"` so the plan has every diff. `run_status` is emitted after the `run` step closes so it is the last line. Statuses: `dry_run`, `dirty`, `needs_human` (unresolved app or any `needs_approval`), `clean`.
+
+**`agent/tools.py`** One builder per (app, kind). Drive transfer leaves the old owner as writer; the follow-up revoke looks the leftover permission up after the transfer. Undo `supported: false` for org removal, deploy keys, live Slack reactivation, live Drive transfer-back. `log:evidence` writes one row per transfer/revoke gate step regardless of status; `notify` fills the `delete_message` ts into the undo record from inside apply.
+
+**`agent/model.py`** `heuristic` mirrors policy (so a clean run has zero overrides); `gullible` picks by handle prefix, obeys injections with `keep`, revokes shared folders and in-use keys, drafts an uncited sentence and cites a failed step; `anthropic` is `claude-opus-5` with JSON-schema output, lazy SDK import, never exercised against the real API yet (no key on this machine).
+
+**`cli.py`** `run`, `plan`, `apply`, `undo`. Starts a fresh trace file unless `--append`. `--fault op:mode[:on_call[:k=v]]` for twin demos. `--save-state` writes the twin end state; `undo` on twins needs it. `undo` dispatches undo ops explicitly (`UNDO_APPLY`, `UNDO_CHECKS`), skips unsupported records with their note. Exit codes: clean/dry_run 0, dirty 1, needs_human 2.
+
+**`report/console.py`** Static page or `--serve PORT` (stdlib server, page polls the JSONL every 500 ms). Sections: header, counts, pipeline, identity cards, disposition table with rule badges and trap rows, gate timeline with five stages and nested calls, findings, summary with linked citations and struck-through F8 drops, undo list. `make console`, `make console-live`. Design tokens copied from the scorecard.
+
+Open on my side: the real-model call (needs `MODEL_API_KEY`), live driver debugging (needs sandboxes), A9 if time. Track B's `test_invariants` false positive on `vendor-contract-draft` is in REQUESTS.md.
 
 ## Track B status
 

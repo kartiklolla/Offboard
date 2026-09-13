@@ -11,3 +11,9 @@ demo:
 
 scorecard:
 	python3 -m report.scorecard --trace traces/run.jsonl --out scorecard.html
+
+console:
+	python3 -m report.console --trace traces/demo.jsonl --out console.html --scorecard scorecard.html
+
+console-live:
+	python3 -m report.console --trace traces/run.jsonl --serve 8765 --scorecard scorecard.html
