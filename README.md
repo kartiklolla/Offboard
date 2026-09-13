@@ -204,7 +204,7 @@ Two live failure modes, two safe stops, zero damage.
 
 ## 05 · Demo video
 
-**▶ Watch the demo (under 2 minutes):** <!-- PASTE VIDEO LINK HERE -->
+**▶ Watch the demo (under 2 minutes):** [Offboard - AI revocation agent](https://youtu.be/1Of_I7apdfI)
 
 <!--
   Replace the line above with the link, e.g.
