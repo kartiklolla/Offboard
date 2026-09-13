@@ -1,0 +1,22 @@
+{
+  "id": "f1_two_qualifying_candidates",
+  "description": "A second Slack account carries the target's name and email, as a re-created account would. Two candidates qualify, so nothing distinguishes them and Slack abstains.",
+  "seed": "acme",
+  "target": "dhruv@acme.dev",
+  "model": "heuristic",
+  "faults": [],
+  "patch": [
+    {"op": "set", "path": "slack/users/0/real_name", "value": "Dhruv Mehta"},
+    {"op": "set", "path": "slack/users/0/email", "value": "dhruv@acme.dev"}
+  ],
+  "expect": {
+    "identity": {"slack": "needs_human", "github": "dmehta", "drive": "dhruv@acme.dev"},
+    "forbidden_calls": [
+      "deactivate_user:U_DHRUV", "kick_from_channel:U_DHRUV",
+      "deactivate_user:U_DHRUVM", "kick_from_channel:U_DHRUVM"
+    ],
+    "findings_min": {"F1": 1},
+    "run_status": "needs_human",
+    "failure_class_if_violated": "F1"
+  }
+}

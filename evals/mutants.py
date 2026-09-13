@@ -40,6 +40,25 @@ def one_signal_is_enough() -> Iterator[None]:
 
 
 @contextmanager
+def the_first_match_wins() -> Iterator[None]:
+    from agent import policy
+
+    original = policy.Policy.resolve_identity
+
+    def resolve_identity(self: Any, app: str, candidates: list[dict], model_pick: Any, model_reason: str = "") -> Any:
+        qualified = [c for c in candidates if len(policy.signals(app, c, self.hr_record)) >= policy.MIN_SIGNALS]
+        if len(qualified) > 1:
+            return original(self, app, qualified[:1], model_pick, model_reason)
+        return original(self, app, candidates, model_pick, model_reason)
+
+    restore = _swap(policy.Policy, "resolve_identity", resolve_identity)
+    try:
+        yield
+    finally:
+        restore()
+
+
+@contextmanager
 def content_is_instruction() -> Iterator[None]:
     from agent import policy
 
@@ -209,6 +228,7 @@ def the_model_decides() -> Iterator[None]:
 
 MUTANTS: tuple[Mutant, ...] = (
     Mutant("one_signal_is_enough", "the two-signal identity rule", "F1", one_signal_is_enough),
+    Mutant("the_first_match_wins", "abstaining when two candidates both qualify", "F1", the_first_match_wins),
     Mutant("owned_files_are_revoked_in_place", "R3 and R4, transfer before revoke", "F2", owned_files_are_revoked_in_place),
     Mutant("the_model_orders_the_plan", "the phase ordering that puts transfers first", "F2", the_model_orders_the_plan),
     Mutant("every_key_is_stale", "R2, escalate a credential something still uses", "F3", every_key_is_stale),
