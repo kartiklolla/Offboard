@@ -9,3 +9,4 @@ plan.json
 .claude/
 evals/results/compare-*.json
 evals/results/latest.json
+.venv/
