@@ -48,6 +48,7 @@ One line per decision: the option chosen and one sentence why. Both Claude sessi
 - Channel ids:
 - `#it-offboarding` channel id:
 - Evidence sheet id:
+- Prerequisites found by `tests/test_live.py` (B, 13 Sep 11:40 PT): the throwaway GitHub account's public profile **name** must equal the HR record name (`Dhruv Mehta`), because the org members endpoint carries no name or email and the driver now fetches each member's profile; without it GitHub has one signal and abstains. The Slack bot needs `channels:read` and `groups:read` on top of PLAN.md's list, or `conversations.list` and `conversations.members` fail with `missing_scope`. Set `SLACK_ENTERPRISE_GRID=1` only on a Grid workspace.
 
 ## Brief facts (Director fills in)
 

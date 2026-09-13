@@ -232,8 +232,13 @@ class GitHubLive(GitHubDriver, DriverBase):
         return items
 
     def list_org_members(self, page: int = 1) -> Page:
-        return self._page("list_org_members", {}, f"/orgs/{self.org}/members", page,
-                          lambda m: {"login": m["login"], "name": m.get("name"), "email": m.get("email")})
+        listed = self._page("list_org_members", {}, f"/orgs/{self.org}/members", page, lambda m: {"login": m["login"]})
+        return Page(items=[self._profile(m["login"]) for m in listed.items], total=listed.total, next_page=listed.next_page)
+
+    def _profile(self, login: str) -> dict:
+        resp = self._api("list_org_members", {"login": login}, "GET", f"/users/{login}")
+        user = resp["json"] or {}
+        return {"login": login, "name": user.get("name"), "email": user.get("email")}
 
     def list_repos(self, page: int = 1) -> Page:
         return self._page("list_repos", {}, f"/orgs/{self.org}/repos", page,
@@ -254,7 +259,12 @@ class GitHubLive(GitHubDriver, DriverBase):
 
     def get_workflow_files(self, full_name: str) -> dict[str, str]:
         import base64
-        resp = self._api("get_workflow_files", {"repo": full_name}, "GET", f"/repos/{full_name}/contents/.github/workflows")
+        try:
+            resp = self._api("get_workflow_files", {"repo": full_name}, "GET", f"/repos/{full_name}/contents/.github/workflows")
+        except urllib.error.HTTPError as exc:
+            if exc.code == 404:
+                return {}
+            raise
         files: dict[str, str] = {}
         for entry in resp["json"] or []:
             if entry.get("type") != "file":

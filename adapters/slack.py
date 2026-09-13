@@ -13,6 +13,7 @@ from twins.driver import TwinDriver
 
 class SlackDriver(ABC):
     app = "slack"
+    supports_deactivation = True
 
     @abstractmethod
     def list_users(self, page: int = 1) -> Page: ...
@@ -155,9 +156,10 @@ class SlackLive(SlackDriver, DriverBase):
         self.token = token or os.environ.get("SLACK_BOT_TOKEN", "")
         self.cassette = cassette
         self.limit = 100
+        self.supports_deactivation = os.environ.get("SLACK_ENTERPRISE_GRID", "").lower() in ("1", "true", "yes")
         self._cursors: dict[str, dict[int, str]] = {}
 
-    def _http(self, method: str, params: dict) -> dict:
+    def _post(self, method: str, params: dict) -> dict:
         req = urllib.request.Request(
             f"https://slack.com/api/{method}",
             data=urllib.parse.urlencode({k: v for k, v in params.items() if v is not None}).encode(),
@@ -166,11 +168,14 @@ class SlackLive(SlackDriver, DriverBase):
         )
         try:
             with urllib.request.urlopen(req, timeout=20) as resp:
-                payload = json.loads(resp.read())
+                return json.loads(resp.read())
         except urllib.error.HTTPError as exc:
             if exc.code in (429, 500, 502, 503):
                 raise TransientError(exc.code, exc.reason) from exc
             raise
+
+    def _http(self, method: str, params: dict) -> dict:
+        payload = self._post(method, params)
         if not payload.get("ok"):
             err = payload.get("error", "unknown")
             if err in ("ratelimited", "internal_error", "service_unavailable"):
@@ -188,14 +193,15 @@ class SlackLive(SlackDriver, DriverBase):
         return self._call(op, args, call)
 
     def _paged(self, op: str, args: dict, method: str, params: dict, key: str, page: int, transform: Any) -> Page:
-        cursor = self._cursors.setdefault(op + json.dumps(args, sort_keys=True), {}).get(page) if page > 1 else None
+        cursors = self._cursors.setdefault(op + json.dumps(args, sort_keys=True), {})
+        cursor = cursors.get(page) if page > 1 else None
         if page > 1 and cursor is None:
             return Page(items=[], total=0, next_page=None)
         payload = self._api(op, {**args, "page": page}, method, {**params, "limit": self.limit, "cursor": cursor})
         items = [transform(x) for x in payload.get(key, [])]
         nxt = (payload.get("response_metadata") or {}).get("next_cursor") or None
         if nxt:
-            self._cursors[op + json.dumps(args, sort_keys=True)][page + 1] = nxt
+            cursors[page + 1] = nxt
         total = (page - 1) * self.limit + len(items) + (1 if nxt else 0)
         return Page(items=items, total=total, next_page=page + 1 if nxt else None)
 
@@ -235,6 +241,8 @@ class SlackLive(SlackDriver, DriverBase):
         return self._api("invite_to_channel", {"channel": channel_id, "user": user_id}, "conversations.invite", {"channel": channel_id, "users": user_id})
 
     def deactivate_user(self, user_id: str) -> dict:
+        if not self.supports_deactivation:
+            raise PermissionError("admin.users.remove needs Enterprise Grid; set SLACK_ENTERPRISE_GRID=1 on a Grid workspace")
         return self._api("deactivate_user", {"user": user_id}, "admin.users.remove", {"user_id": user_id})
 
     def reactivate_user(self, user_id: str) -> dict:
